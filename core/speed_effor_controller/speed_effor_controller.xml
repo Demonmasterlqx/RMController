@@ -1,0 +1,7 @@
+<library path="speed_effor_controller">
+  <class name="RM_hardware_interface/SpeedEffortController"
+         type="RM_hardware_interface::SpeedEffortController" base_class_type="controller_interface::ChainableControllerInterface">
+  <description>
+    The speed effort controller transforms speed commands into effort commands for the robot's joints.</description>
+  </class>
+</library>

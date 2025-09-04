@@ -1,0 +1,46 @@
+speed_effor_controller:
+  reference_timeout: {
+    type: double,
+    default_value: 0.0,
+    description: "看门狗，在指定时间内没有收到消息就直接将命令置零",
+  }
+
+  joint: {
+    type: string,
+    default_value: "",
+    read_only: true,
+    description: "被控制的关节名称",
+  }
+
+  effort_command_name: {
+    type: string,
+    default_value: "effort",
+    read_only: true,
+    description: "力矩接口的名字",
+  }
+
+  speed_state_name: {
+    type: string,
+    default_value: "velocity",
+    read_only: true,
+    description: "速度接口的名字",
+  }
+
+  effort_state_name: {
+    type: string,
+    default_value: "effort",
+    read_only: true,
+    description: "力矩接口的名字",
+  }
+
+  chainable: {
+    type: bool,
+    default_value: false,
+    description: "是否打开级联控制，如果是则将会结束监听话题，并且不再订阅命令",
+  }
+
+  command_topic: {
+    type: string,
+    default_value: "/speed",
+    description: "订阅的速度命令话题",
+  }
