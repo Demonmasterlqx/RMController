@@ -49,6 +49,8 @@ public:
 
     controller_interface::return_type update_reference_from_subscribers() override;
 
+    bool on_set_chained_mode(bool chained_mode) override;
+
 private:
 
     const int EFFORT_COMMAND_INDEX=0;
@@ -99,7 +101,7 @@ private:
     void reset_watchdog();
     // 看门狗是否触发
     bool is_watchdog_triggered();
-    
+
     // 设置command_used_ 为true
     void set_command_used();
 

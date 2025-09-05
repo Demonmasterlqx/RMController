@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="test_robot">
+
+    <!-- Import test_robot urdf file -->
+    <xacro:include filename="test_robot.urdf" />
+
+    <!-- Import control_xacro -->
+    <xacro:include filename="test_robot.ros2_control.xacro" />
+
+</robot>

@@ -9,7 +9,7 @@ controller_interface::CallbackReturn SpeedEffortController::on_init(){
         param_listener_=std::make_shared<speed_effor_controller::ParamListener>(get_node());
     }
     catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Could not initialize parameters: %s",e.what());
+        RCLCPP_ERROR(get_node()->get_logger(),"Could not initialize parameters: %s",e.what());
         return controller_interface::CallbackReturn::ERROR;
     }
 
@@ -21,9 +21,17 @@ controller_interface::CallbackReturn SpeedEffortController::on_init(){
 }
 
 std::vector<hardware_interface::CommandInterface> SpeedEffortController::on_export_reference_interfaces(){
+
+    reference_interfaces_.resize(1, 0.0);
+
     std::vector<hardware_interface::CommandInterface> interfaces;
-    hardware_interface::CommandInterface interface(params_.joint ,"velocity" , speed_command_chain_.get());
+    interfaces.push_back(hardware_interface::CommandInterface(get_node()->get_name() , params_.joint + "/" + "velocity" , &reference_interfaces_[0]));
+    RCLCPP_INFO(get_node()->get_logger(),"Exporting reference interface: %s", interfaces.back().get_name().c_str());
     return interfaces;
+}
+
+bool SpeedEffortController::on_set_chained_mode(bool){
+    return true;
 }
 
 controller_interface::CallbackReturn SpeedEffortController::on_configure(const rclcpp_lifecycle::State &){
@@ -40,29 +48,38 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     // 是否启用链式控制
     chainable_ = params_.chainable;
     if(!chainable_){
-        RCLCPP_INFO_STREAM(get_node()->get_logger(),"SpeedEffortController: not in chained mode, subscribing to topic " << params_.command_topic);
+        RCLCPP_INFO_STREAM(get_node()->get_logger(),"not in chained mode, subscribing to topic " << params_.command_topic);
         get_node()->create_subscription<std_msgs::msg::Float32>(
             params_.command_topic,1,
             std::bind(&SpeedEffortController::speed_command_callback,this,std::placeholders::_1)
         );
+        set_chained_mode(false);
     }
     else{
         set_chained_mode(true);
-        speed_command_chain_=std::make_shared<double>(0.0);
-        RCLCPP_INFO(get_node()->get_logger(),"SpeedEffortController: in chained mode, not subscribing to any topic");
+        RCLCPP_INFO(get_node()->get_logger(),"in chained mode, not subscribing to any topic");
     }
 
-    // 设置publisher
+    try{
+        // 设置publisher
 
-    velocity_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.speed_state_name, 1);
-    effort_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.effort_state_name, 1);
-    effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.effort_command_name, 1);
+        velocity_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.speed_state_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/state/" + params_.speed_state_name).c_str());
+        effort_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.effort_state_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/state/" + params_.effort_state_name).c_str());
+        effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.effort_command_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/reference/" + params_.effort_command_name).c_str());
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Could not create publishers: %s",e.what());
+        return controller_interface::CallbackReturn::ERROR;
+    }
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn SpeedEffortController::on_cleanup(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(),"SpeedEffortController: cleaning up from state %s",previous_state.label().c_str());
+    RCLCPP_INFO(get_node()->get_logger(),"cleaning up from state %s",previous_state.label().c_str());
     speed_command_buffer_.writeFromNonRT(0.0);
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -86,13 +103,13 @@ controller_interface::InterfaceConfiguration SpeedEffortController::state_interf
 
 
 controller_interface::CallbackReturn SpeedEffortController::on_activate(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(),"SpeedEffortController: activating from state %s",previous_state.label().c_str());
+    RCLCPP_INFO(get_node()->get_logger(),"activating from state %s",previous_state.label().c_str());
     speed_command_buffer_.writeFromNonRT(0.0);
     return controller_interface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn SpeedEffortController::on_deactivate(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(),"SpeedEffortController: deactivating from state %s",previous_state.label().c_str());
+    RCLCPP_INFO(get_node()->get_logger(),"deactivating from state %s",previous_state.label().c_str());
     speed_command_buffer_.writeFromNonRT(0.0);
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -126,7 +143,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
             reference_speed=*speed_command_buffer_.readFromRT();
         }
         else{
-            reference_speed=*speed_command_chain_;
+            reference_speed=reference_interfaces_[0];
         }
         if(is_watchdog_triggered()){
             reference_speed=0.0;
@@ -137,7 +154,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         state_effort = state_interfaces_[EFFORT_STATE_INDEX].get_value();
     }
     catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Exception during reading interfaces: %s",e.what());
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during reading interfaces: %s",e.what());
         return controller_interface::return_type::ERROR;
     }
 
@@ -166,7 +183,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         }
     }
     catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Exception during publishing state: %s",e.what());
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing state: %s",e.what());
     }
 
     try{
@@ -176,7 +193,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
     }
     catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Exception during calculate and writing command: %s",e.what());
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during calculate and writing command: %s",e.what());
         return controller_interface::return_type::ERROR;
     }
 
