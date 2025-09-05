@@ -15,7 +15,7 @@ controller_interface::CallbackReturn SpeedEffortController::on_init(){
 
     speed_command_buffer_.writeFromNonRT(0.0);
 
-    last_command_time_=get_node()->now();
+    reset_watchdog();
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -32,6 +32,12 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     // 设置看门狗
     watchdog_timeout_=rclcpp::Duration::from_seconds(params_.reference_timeout);
 
+    // 设置参数
+    K_P_.store(params_.K_P);
+    K_I_.store(params_.K_I);
+    K_D_.store(params_.K_D);
+
+    // 是否启用链式控制
     chainable_ = params_.chainable;
     if(!chainable_){
         RCLCPP_INFO_STREAM(get_node()->get_logger(),"SpeedEffortController: not in chained mode, subscribing to topic " << params_.command_topic);
@@ -45,6 +51,12 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
         speed_command_chain_=std::make_shared<double>(0.0);
         RCLCPP_INFO(get_node()->get_logger(),"SpeedEffortController: in chained mode, not subscribing to any topic");
     }
+
+    // 设置publisher
+
+    velocity_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.speed_state_name, 1);
+    effort_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.effort_state_name, 1);
+    effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.effort_command_name, 1);
 
     return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -100,25 +112,53 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     (void)time;
     (void)period;
 
-    double command=0.0;
+    static double integral_error=0.0;
+    static double last_error=0.0;
+
+    double reference_speed=0.0;
     if(!chainable_){
-        command=*speed_command_buffer_.readFromRT();
+        reference_speed=*speed_command_buffer_.readFromRT();
     }
     else{
-        command=*speed_command_chain_;
+        reference_speed=*speed_command_chain_;
     }
     if(is_watchdog_triggered()){
-        command=0.0;
+        reference_speed=0.0;
     }
     set_command_used();
 
     double state_speed = state_interfaces_[SPEED_STATE_INDEX].get_value();
     double state_effort = state_interfaces_[EFFORT_STATE_INDEX].get_value();
-    /**
-     * @todo PID控制器
-     * 
-     */
 
+    // 更新 error 统计
+    double error = reference_speed - state_speed;
+    double differential_error = (error - last_error);
+    integral_error += error;
+    last_error = error;
+
+    // 输出当前的状态
+    {
+        auto msg = std_msgs::msg::Float32();
+        msg.data = state_speed;
+        velocity_state_publisher_->publish(msg);
+    }
+    {
+        auto msg = std_msgs::msg::Float32();
+        msg.data = state_effort;
+        effort_state_publisher_->publish(msg);
+    }
+    {
+        auto msg = std_msgs::msg::Float32();
+        msg.data = reference_speed;
+        effort_reference_publisher_->publish(msg);
+    }
+
+    // 计算输出
+    double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error;
+
+    command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
+
+    return controller_interface::return_type::OK;
 }
 
 void SpeedEffortController::reset_watchdog(){

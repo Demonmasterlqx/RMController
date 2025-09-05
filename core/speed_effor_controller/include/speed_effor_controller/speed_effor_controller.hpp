@@ -79,6 +79,22 @@ private:
     // 当前速度命令是否被使用
     std::atomic<bool> command_used_{false};
 
+    // velocity state publisher
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> velocity_state_publisher_=nullptr;
+
+    // effort state publisher
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> effort_state_publisher_=nullptr;
+
+    // effort reference publisher
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> effort_reference_publisher_=nullptr;
+
+    // K_I
+    std::atomic<double> K_I_{0.0};
+    // K_P
+    std::atomic<double> K_P_{0.0};
+    // K_D
+    std::atomic<double> K_D_{0.0};
+
     // 重置看门狗
     void reset_watchdog();
     // 看门狗是否触发

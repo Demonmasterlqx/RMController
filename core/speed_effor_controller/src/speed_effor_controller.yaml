@@ -44,3 +44,27 @@ speed_effor_controller:
     default_value: "/speed",
     description: "订阅的速度命令话题",
   }
+
+  K_P : {
+    type: double,
+    default_value: 1.0,
+    description: "比例增益",
+  }
+
+  K_I : {
+    type: double,
+    default_value: 0.0,
+    description: "积分增益",
+  }
+
+  K_D : {
+    type: double,
+    default_value: 0.0,
+    description: "微分增益",
+  }
+
+  Debug_Topic: {
+    type: string,
+    default_value: "/debug/speed_effort_controller",
+    description: "调试信息发布话题",
+  }
