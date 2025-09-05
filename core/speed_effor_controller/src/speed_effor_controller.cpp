@@ -69,6 +69,9 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
         RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/state/" + params_.effort_state_name).c_str());
         effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.effort_command_name, 1);
         RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/reference/" + params_.effort_command_name).c_str());
+        velocity_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.speed_state_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/reference/" + params_.speed_state_name).c_str());
+
     }
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(),"Could not create publishers: %s",e.what());
@@ -179,7 +182,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         {
             auto msg = std_msgs::msg::Float32();
             msg.data = reference_speed;
-            effort_reference_publisher_->publish(msg);
+            velocity_reference_publisher_->publish(msg);
         }
     }
     catch(const std::exception & e){

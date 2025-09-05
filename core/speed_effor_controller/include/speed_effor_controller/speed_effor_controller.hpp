@@ -90,6 +90,9 @@ private:
     // effort reference publisher
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> effort_reference_publisher_=nullptr;
 
+    // velocity reference publisher
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> velocity_reference_publisher_=nullptr;
+
     // K_I
     std::atomic<double> K_I_{0.0};
     // K_P
