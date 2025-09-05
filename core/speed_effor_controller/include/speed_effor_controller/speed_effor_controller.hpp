@@ -99,6 +99,7 @@ private:
     void reset_watchdog();
     // 看门狗是否触发
     bool is_watchdog_triggered();
+    
     // 设置command_used_ 为true
     void set_command_used();
 

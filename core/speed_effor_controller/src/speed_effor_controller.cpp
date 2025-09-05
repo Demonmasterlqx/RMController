@@ -107,6 +107,9 @@ controller_interface::return_type SpeedEffortController::update_reference_from_s
     return controller_interface::return_type::OK;
 }
 
+void SpeedEffortController::set_command_used(){
+    command_used_.store(true);
+}
 
 controller_interface::return_type SpeedEffortController::update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period){
     (void)time;
@@ -116,19 +119,27 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     static double last_error=0.0;
 
     double reference_speed=0.0;
-    if(!chainable_){
-        reference_speed=*speed_command_buffer_.readFromRT();
-    }
-    else{
-        reference_speed=*speed_command_chain_;
-    }
-    if(is_watchdog_triggered()){
-        reference_speed=0.0;
-    }
-    set_command_used();
+    double state_speed = 0.0;
+    double state_effort = 0.0;
+    try{
+        if(!chainable_){
+            reference_speed=*speed_command_buffer_.readFromRT();
+        }
+        else{
+            reference_speed=*speed_command_chain_;
+        }
+        if(is_watchdog_triggered()){
+            reference_speed=0.0;
+        }
+        set_command_used();
 
-    double state_speed = state_interfaces_[SPEED_STATE_INDEX].get_value();
-    double state_effort = state_interfaces_[EFFORT_STATE_INDEX].get_value();
+        state_speed = state_interfaces_[SPEED_STATE_INDEX].get_value();
+        state_effort = state_interfaces_[EFFORT_STATE_INDEX].get_value();
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Exception during reading interfaces: %s",e.what());
+        return controller_interface::return_type::ERROR;
+    }
 
     // 更新 error 统计
     double error = reference_speed - state_speed;
@@ -137,26 +148,37 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     last_error = error;
 
     // 输出当前的状态
-    {
-        auto msg = std_msgs::msg::Float32();
-        msg.data = state_speed;
-        velocity_state_publisher_->publish(msg);
+    try{
+        {
+            auto msg = std_msgs::msg::Float32();
+            msg.data = state_speed;
+            velocity_state_publisher_->publish(msg);
+        }
+        {
+            auto msg = std_msgs::msg::Float32();
+            msg.data = state_effort;
+            effort_state_publisher_->publish(msg);
+        }
+        {
+            auto msg = std_msgs::msg::Float32();
+            msg.data = reference_speed;
+            effort_reference_publisher_->publish(msg);
+        }
     }
-    {
-        auto msg = std_msgs::msg::Float32();
-        msg.data = state_effort;
-        effort_state_publisher_->publish(msg);
-    }
-    {
-        auto msg = std_msgs::msg::Float32();
-        msg.data = reference_speed;
-        effort_reference_publisher_->publish(msg);
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Exception during publishing state: %s",e.what());
     }
 
-    // 计算输出
-    double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error;
+    try{
+        // 计算输出
+        double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error;
 
-    command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
+        command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"SpeedEffortController: Exception during calculate and writing command: %s",e.what());
+        return controller_interface::return_type::ERROR;
+    }
 
     return controller_interface::return_type::OK;
 }
