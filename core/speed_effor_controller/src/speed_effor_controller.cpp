@@ -49,7 +49,7 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     chainable_ = params_.chainable;
     if(!chainable_){
         RCLCPP_INFO_STREAM(get_node()->get_logger(),"not in chained mode, subscribing to topic " << params_.command_topic);
-        get_node()->create_subscription<std_msgs::msg::Float32>(
+        speed_command_subscriber_ = get_node()->create_subscription<std_msgs::msg::Float32>(
             params_.command_topic,1,
             std::bind(&SpeedEffortController::speed_command_callback,this,std::placeholders::_1)
         );
@@ -193,6 +193,13 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         // 计算输出
         double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error;
 
+        // publish reference
+        {
+            auto msg = std_msgs::msg::Float32();
+            msg.data = effort_command;
+            effort_reference_publisher_->publish(msg);
+        }
+
         command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
     }
     catch(const std::exception & e){
@@ -209,7 +216,7 @@ void SpeedEffortController::reset_watchdog(){
 }
 
 bool SpeedEffortController::is_watchdog_triggered(){
-    return ((get_node()->now() - last_command_time_) > watchdog_timeout_)&&(!command_used_.load());
+    return ((get_node()->now() - last_command_time_) > watchdog_timeout_)&&(command_used_.load());
 }
 
 

@@ -93,6 +93,9 @@ private:
     // velocity reference publisher
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> velocity_reference_publisher_=nullptr;
 
+    // speed subscriber
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr speed_command_subscriber_=nullptr;
+
     // K_I
     std::atomic<double> K_I_{0.0};
     // K_P

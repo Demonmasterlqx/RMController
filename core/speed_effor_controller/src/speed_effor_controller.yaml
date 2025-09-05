@@ -2,7 +2,7 @@ speed_effor_controller:
   reference_timeout: {
     type: double,
     default_value: 0.0,
-    description: "看门狗，在指定时间内没有收到消息就直接将命令置零",
+    description: "看门狗，在指定时间内没有收到消息就直接将命令置零单位是s",
   }
 
   joint: {
@@ -41,7 +41,7 @@ speed_effor_controller:
 
   command_topic: {
     type: string,
-    default_value: "/speed",
+    default_value: "speed",
     description: "订阅的速度命令话题",
   }
 

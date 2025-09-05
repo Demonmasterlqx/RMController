@@ -8,11 +8,11 @@ from launch.substitutions import LaunchConfiguration, Command
 
 def generate_launch_description():
     robot_description_pkg_dir = get_package_share_directory('speed_effor_controller')
-    xacro_file = os.path.join(robot_description_pkg_dir, "test", 'config', "no_hw", 'test_robot.urdf.xacro')
+    xacro_file = os.path.join(robot_description_pkg_dir, "test", 'config', "hw", 'test_robot.urdf.xacro')
     robot_description_content = Command(['xacro', ' ', xacro_file])
 
     controller_config_pkg_dir = get_package_share_directory('speed_effor_controller')
-    controller_config_file = os.path.join(controller_config_pkg_dir, 'test', 'config', 'no_hw', 'ros2_controller.yaml')
+    controller_config_file = os.path.join(controller_config_pkg_dir, 'test', 'config', 'hw', 'ros2_controller.yaml')
 
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
