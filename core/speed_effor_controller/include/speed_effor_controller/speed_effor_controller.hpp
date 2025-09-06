@@ -102,6 +102,10 @@ private:
     std::atomic<double> K_P_{0.0};
     // K_D
     std::atomic<double> K_D_{0.0};
+    // front_feed
+    std::atomic<double> front_feed_{0.0};
+    //forgetting_factor 用于积分项的遗忘
+    std::atomic<double> forgetting_factor_{0.0};
 
     // 重置看门狗
     void reset_watchdog();

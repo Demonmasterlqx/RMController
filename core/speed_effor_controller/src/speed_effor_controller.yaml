@@ -63,6 +63,19 @@ speed_effor_controller:
     description: "微分增益",
   }
 
+  front_feed : {
+    type: double,
+    default_value: 0.0,
+    description: "前馈增益",
+  }
+
+  forgetting_factor : {
+    type: double,
+    default_value: 0.5,
+    description: "积分遗忘因子，范围0~1，1表示不遗忘",
+  }
+
+
   Debug_Topic: {
     type: string,
     default_value: "/debug/speed_effort_controller",

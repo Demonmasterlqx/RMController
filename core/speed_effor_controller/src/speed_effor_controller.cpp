@@ -44,6 +44,9 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     K_P_.store(params_.K_P);
     K_I_.store(params_.K_I);
     K_D_.store(params_.K_D);
+    front_feed_.store(params_.front_feed);
+    forgetting_factor_.store(params_.forgetting_factor);
+
 
     // 是否启用链式控制
     chainable_ = params_.chainable;
@@ -164,7 +167,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     // 更新 error 统计
     double error = reference_speed - state_speed;
     double differential_error = (error - last_error);
-    integral_error += error;
+    integral_error += error * forgetting_factor_.load();
     last_error = error;
 
     // 输出当前的状态
@@ -191,13 +194,17 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
 
     try{
         // 计算输出
-        double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error;
+        double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error + front_feed_.load() * reference_speed;
 
         // publish reference
         {
             auto msg = std_msgs::msg::Float32();
             msg.data = effort_command;
             effort_reference_publisher_->publish(msg);
+        }
+
+        if(!rclcpp::ok()){
+            effort_command = 0.0;
         }
 
         command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
