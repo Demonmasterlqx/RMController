@@ -11,8 +11,9 @@
 
         <joint name="wheel_fl_joint">
 
-            <param name="can_id">3</param>
-            <param name="motor_type">C610</param>
+            <param name="can_id">2</param>
+            <param name="motor_type">C620</param>
+            <param name="reverse">false</param>
 
             <command_interface name="effort"/>
             <state_interface name="position"/>
@@ -23,8 +24,9 @@
 
         <joint name="wheel_fr_joint">
 
-            <param name="can_id">4</param>
-            <param name="motor_type">C610</param>
+            <param name="can_id">1</param>
+            <param name="motor_type">C620</param>
+            <param name="reverse">true</param>
 
             <command_interface name="effort"/>
             <state_interface name="position"/>
@@ -35,8 +37,9 @@
 
         <joint name="wheel_rl_joint">
 
-            <param name="can_id">2</param>
-            <param name="motor_type">C610</param>
+            <param name="can_id">3</param>
+            <param name="motor_type">C620</param>
+            <param name="reverse">false</param>
 
             <command_interface name="effort"/>
             <state_interface name="position"/>
@@ -46,8 +49,9 @@
 
         <joint name="wheel_rr_joint">
 
-            <param name="can_id">1</param>
-            <param name="motor_type">C610</param>
+            <param name="can_id">4</param>
+            <param name="motor_type">C620</param>
+            <param name="reverse">true</param>
 
             <command_interface name="effort"/>
             <state_interface name="position"/>

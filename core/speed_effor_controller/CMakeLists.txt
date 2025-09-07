@@ -21,6 +21,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   tf2_msgs
 )
 
+option(DEBUG "启动debug发布者" ON)
+
 find_package(ament_cmake REQUIRED)
 find_package(backward_ros REQUIRED)
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
@@ -42,6 +44,13 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 message(${SOURCES})
 
 add_library(speed_effor_controller SHARED ${SOURCES})
+
+if(DEBUG)
+    target_compile_definitions(speed_effor_controller PRIVATE DEBUG)
+    message("Debug mode is ON")
+else()
+    message("Debug mode is OFF")
+endif()
 
 target_include_directories(speed_effor_controller
   PUBLIC

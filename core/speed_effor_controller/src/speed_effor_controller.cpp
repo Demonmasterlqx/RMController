@@ -5,6 +5,13 @@ namespace RM_hardware_interface{
 SpeedEffortController::SpeedEffortController():controller_interface::ChainableControllerInterface(){}
 
 controller_interface::CallbackReturn SpeedEffortController::on_init(){
+
+    #ifdef DEBUG
+    debug_time_interval_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>( std::string(get_node()->get_name()) + "/time_interval", 1);
+    RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) + "/time_interval").c_str());
+    last_time_ = get_node()->now();
+    #endif
+
     try{
         param_listener_=std::make_shared<speed_effor_controller::ParamListener>(get_node());
     }
@@ -135,6 +142,23 @@ void SpeedEffortController::set_command_used(){
 }
 
 controller_interface::return_type SpeedEffortController::update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period){
+
+    // 输出和上一次的时间间隔
+    #ifdef DEBUG
+
+    try{
+        auto msg = std_msgs::msg::Float32();
+        msg.data = (time - last_time_).seconds();
+        last_time_ = time;
+        debug_time_interval_publisher_->publish(msg);
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing debug time interval: %s",e.what());
+    }
+
+    #endif
+    
+
     (void)time;
     (void)period;
 
@@ -149,6 +173,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
             reference_speed=*speed_command_buffer_.readFromRT();
         }
         else{
+            reset_watchdog();
             reference_speed=reference_interfaces_[0];
         }
         if(is_watchdog_triggered()){
@@ -167,7 +192,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     // 更新 error 统计
     double error = reference_speed - state_speed;
     double differential_error = (error - last_error);
-    integral_error += error * forgetting_factor_.load();
+    integral_error =  (error + integral_error) * forgetting_factor_.load();
     last_error = error;
 
     // 输出当前的状态

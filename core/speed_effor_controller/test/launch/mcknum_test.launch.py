@@ -40,7 +40,7 @@ def generate_launch_description():
     import yaml
     with open(controller_config_file, 'r') as f:
         config = yaml.safe_load(f)
-    controllers = [name for name in config.keys() if name != 'controller_manager']
+    controllers = [name for name in config.keys() if name != 'controller_manager' and name != "mcknum_controller"]
     for controller in controllers:
         spawner = Node(
             package='controller_manager',
@@ -57,4 +57,4 @@ def generate_launch_description():
 
     return ld
 
-# /opt/ros/humble/lib/controller_manager/spawner wheel_fl_controller wheel_fr_controller wheel_rl_controller wheel_rr_controller mcknum_controller --param-file /home/pnx/code/RMController/install/speed_effor_controller/share/speed_effor_controller/test/config/mcknum/ros2_controller.yaml --activate-as-group --ros-args -r __node:=spawner
+# /opt/ros/humble/lib/controller_manager/spawner mcknum_controller --param-file /home/pnx/code/RMController/install/speed_effor_controller/share/speed_effor_controller/test/config/mcknum/ros2_controller.yaml --activate-as-group --ros-args -r __node:=spawner

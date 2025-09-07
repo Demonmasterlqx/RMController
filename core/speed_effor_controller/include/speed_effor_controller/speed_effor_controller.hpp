@@ -22,6 +22,8 @@
 
 #include "speed_effor_controller/speed_effor_controller_parameters.hpp"
 
+// #define DEBUG
+
 namespace RM_hardware_interface{
 
 class SpeedEffortController : public controller_interface::ChainableControllerInterface{
@@ -116,6 +118,14 @@ private:
     void set_command_used();
 
     void speed_command_callback(const std_msgs::msg::Float32::SharedPtr msg);
+
+    #ifdef DEBUG
+
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr debug_time_interval_publisher_=nullptr;
+    // 上一次接收到命令的时间，也就是调用 update_and_write_commands 的时间
+    rclcpp::Time last_time_ = rclcpp::Time(0,0);
+    
+    #endif
 
 
 

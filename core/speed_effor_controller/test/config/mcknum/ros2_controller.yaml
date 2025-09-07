@@ -23,11 +23,11 @@ wheel_fl_controller:
     chainable: true
     command_topic: speed
     reference_timeout: 0.1
-    K_P: 5.0
-    K_I: 2.0
-    K_D: 10.0
+    K_P: 25.0
+    K_I: 0.0
+    K_D: 0.0
     front_feed: 0.0
-    forgetting_factor: 0.1
+    forgetting_factor: 0.3
 
 wheel_fr_controller:
   ros__parameters:
@@ -39,11 +39,11 @@ wheel_fr_controller:
     chainable: true
     command_topic: speed
     reference_timeout: 0.1
-    K_P: 5.0
-    K_I: 2.0
-    K_D: 10.0
+    K_P: 25.0
+    K_I: 0.0
+    K_D: 0.0
     front_feed: 0.0
-    forgetting_factor: 0.1
+    forgetting_factor: 0.3
 
 wheel_rl_controller:
   ros__parameters:
@@ -55,11 +55,11 @@ wheel_rl_controller:
     chainable: true
     command_topic: speed
     reference_timeout: 0.1
-    K_P: 5.0
-    K_I: 2.0
-    K_D: 10.0
+    K_P: 25.0
+    K_I: 0.0
+    K_D: 0.0
     front_feed: 0.0
-    forgetting_factor: 0.1
+    forgetting_factor: 0.3
 
 wheel_rr_controller:
   ros__parameters:
@@ -71,11 +71,11 @@ wheel_rr_controller:
     chainable: true
     command_topic: speed
     reference_timeout: 0.1
-    K_P: 5.0
-    K_I: 2.0
-    K_D: 10.0
+    K_P: 25.0
+    K_I: 0.0
+    K_D: 0.0
     front_feed: 0.0
-    forgetting_factor: 0.1
+    forgetting_factor: 0.3
 
 mcknum_controller:
   ros__parameters:
@@ -94,8 +94,11 @@ mcknum_controller:
 
     kinematics:
       base_frame_offset: { x: 0.0, y: 0.0, theta: 0.0 }
-      wheels_radius: 0.035
+      wheels_radius: 0.3
       sum_of_robot_center_projection_on_X_Y_axis: 1.0
+
+    use_stamped_vel: false
+    in_chained_mode: false
 
     base_frame_id: "base_link"
     odom_frame_id: "odom"
