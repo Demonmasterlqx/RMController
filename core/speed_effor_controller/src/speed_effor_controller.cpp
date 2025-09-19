@@ -48,11 +48,32 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     watchdog_timeout_=rclcpp::Duration::from_seconds(params_.reference_timeout);
 
     // 设置参数
-    K_P_.store(params_.K_P);
-    K_I_.store(params_.K_I);
-    K_D_.store(params_.K_D);
     front_feed_.store(params_.front_feed);
-    forgetting_factor_.store(params_.forgetting_factor);
+
+    pid_config_ = PID_Init_Config_s{
+        .Kp = static_cast<float>(params_.Kp),
+        .Ki = static_cast<float>(params_.Ki),
+        .Kd = static_cast<float>(params_.Kd),
+        .MaxOut = static_cast<float>(params_.MaxOut),
+        .DeadBand = static_cast<float>(params_.DeadBand),
+
+        .Improve = static_cast<PID_Improvement_e>(
+            PID_Integral_Limit |
+            PID_Derivative_On_Measurement |
+            PID_Trapezoid_Intergral |
+            PID_OutputFilter |
+            PID_ChangingIntegrationRate |
+            PID_DerivativeFilter |
+            PID_ErrorHandle
+        ),
+        .IntegralLimit = static_cast<float>(params_.IntegralLimit),
+        .CoefA = static_cast<float>(params_.CoefA),
+        .CoefB = static_cast<float>(params_.CoefB),
+        .Output_LPF_RC = static_cast<float>(params_.Output_LPF_RC),
+        .Derivative_LPF_RC = static_cast<float>(params_.Derivative_LPF_RC),
+    };
+
+    pid_controller_ = std::make_shared<PIDController>(pid_config_);
 
 
     // 是否启用链式控制
@@ -162,9 +183,6 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     (void)time;
     (void)period;
 
-    static double integral_error=0.0;
-    static double last_error=0.0;
-
     double reference_speed=0.0;
     double state_speed = 0.0;
     double state_effort = 0.0;
@@ -189,60 +207,25 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         return controller_interface::return_type::ERROR;
     }
 
-    // 更新 error 统计
-    double error = reference_speed - state_speed;
-    double differential_error = (error - last_error);
-    integral_error =  (error + integral_error) * forgetting_factor_.load();
-    last_error = error;
+    (void)state_effort;
 
-    // 输出当前的状态
-    try{
-        {
-            auto msg = std_msgs::msg::Float32();
-            msg.data = state_speed;
-            velocity_state_publisher_->publish(msg);
-        }
-        {
-            auto msg = std_msgs::msg::Float32();
-            msg.data = state_effort;
-            effort_state_publisher_->publish(msg);
-        }
-        {
-            auto msg = std_msgs::msg::Float32();
-            msg.data = reference_speed;
-            velocity_reference_publisher_->publish(msg);
-        }
+    // 计算输出
+    double effort_command = pid_controller_->calculate(reference_speed, state_speed);
+    effort_command += front_feed_.load() * reference_speed;
+
+    // 限制输出
+    if(effort_command > params_.MaxOut){
+        effort_command = params_.MaxOut;
     }
-    catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing state: %s",e.what());
+    else if(effort_command < -params_.MaxOut){
+        effort_command = -params_.MaxOut;
     }
 
     try{
-        // 计算输出
-        double effort_command = K_P_ * error + K_I_ * integral_error + K_D_ * differential_error + front_feed_.load() * reference_speed;
-
-        // publish reference
-        {
-            auto msg = std_msgs::msg::Float32();
-            msg.data = effort_command;
-            effort_reference_publisher_->publish(msg);
-        }
-
-        if(!rclcpp::ok()){
-            effort_command = 0.0;
-        }
-
-        if(effort_command > 10){
-            effort_command = 10;
-        }
-        else if(effort_command < -10){
-            effort_command = -10;
-        }
-
         command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
     }
     catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"Exception during calculate and writing command: %s",e.what());
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during writing command interface: %s",e.what());
         return controller_interface::return_type::ERROR;
     }
 

@@ -45,39 +45,75 @@ speed_effor_controller:
     description: "订阅的速度命令话题",
   }
 
-  K_P : {
+  Debug_Topic: {
+    type: string,
+    default_value: "/debug/speed_effort_controller",
+    description: "调试信息发布话题",
+  }
+
+  Kp : {
     type: double,
-    default_value: 1.0,
+    default_value: 0.0,
     description: "比例增益",
   }
 
-  K_I : {
+  Ki : {
     type: double,
     default_value: 0.0,
     description: "积分增益",
   }
 
-  K_D : {
+  Kd : {
     type: double,
     default_value: 0.0,
     description: "微分增益",
   }
 
+  MaxOut : {
+    type: double,
+    default_value: 0.0,
+    description: "输出限幅",
+  }
+
+  DeadBand : {
+    type: double,
+    default_value: 0.0,
+    description: "死区",
+  }
+
+  IntegralLimit : {
+    type: double,
+    default_value: 0.0,
+    description: "积分限幅",
+  }
+
+  CoefA : {
+    type: double,
+    default_value: 0.0,
+    description: "变速积分参数",
+  }
+
+  CoefB : {
+    type: double,
+    default_value: 0.0,
+    description: "变速积分参数",
+  }
+
+  Output_LPF_RC : {
+    type: double,
+    default_value: 0.0,
+    description: "输出一阶低通滤波时间常数",
+  }
+
+  Derivative_LPF_RC : {
+    type: double,
+    default_value: 0.0,
+    description: "微分一阶低通滤波时间常数",
+  }
+
+
   front_feed : {
     type: double,
     default_value: 0.0,
     description: "前馈增益",
-  }
-
-  forgetting_factor : {
-    type: double,
-    default_value: 0.5,
-    description: "积分遗忘因子，范围0~1，1表示不遗忘",
-  }
-
-
-  Debug_Topic: {
-    type: string,
-    default_value: "/debug/speed_effort_controller",
-    description: "调试信息发布话题",
   }

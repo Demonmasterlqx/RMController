@@ -5,6 +5,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# C++20
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # find dependencies
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
@@ -20,6 +25,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   tf2_geometry_msgs
   tf2_msgs
 )
+
+add_subdirectory(../../submodule_lib/pid_controller ${CMAKE_CURRENT_BINARY_DIR}/pid_controller_build)
 
 option(DEBUG "启动debug发布者" ON)
 
@@ -61,7 +68,9 @@ target_include_directories(speed_effor_controller PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 target_link_libraries(speed_effor_controller
-  speed_effor_controller_parameters)
+  speed_effor_controller_parameters
+  pid_controller
+)
 
 ament_target_dependencies(speed_effor_controller
   ${THIS_PACKAGE_INCLUDE_DEPENDS}
