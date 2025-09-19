@@ -24,7 +24,7 @@ wheel_fl_controller:
     command_topic: speed
     reference_timeout: 0.1
     K_P: 25.0
-    K_I: 0.0
+    K_I: 0.5
     K_D: 0.0
     front_feed: 0.0
     forgetting_factor: 0.3
@@ -40,7 +40,7 @@ wheel_fr_controller:
     command_topic: speed
     reference_timeout: 0.1
     K_P: 25.0
-    K_I: 0.0
+    K_I: 0.5
     K_D: 0.0
     front_feed: 0.0
     forgetting_factor: 0.3
@@ -56,7 +56,7 @@ wheel_rl_controller:
     command_topic: speed
     reference_timeout: 0.1
     K_P: 25.0
-    K_I: 0.0
+    K_I: 0.5
     K_D: 0.0
     front_feed: 0.0
     forgetting_factor: 0.3
@@ -72,7 +72,7 @@ wheel_rr_controller:
     command_topic: speed
     reference_timeout: 0.1
     K_P: 25.0
-    K_I: 0.0
+    K_I: 0.5
     K_D: 0.0
     front_feed: 0.0
     forgetting_factor: 0.3

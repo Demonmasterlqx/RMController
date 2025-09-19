@@ -232,6 +232,13 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
             effort_command = 0.0;
         }
 
+        if(effort_command > 10){
+            effort_command = 10;
+        }
+        else if(effort_command < -10){
+            effort_command = -10;
+        }
+
         command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
     }
     catch(const std::exception & e){
