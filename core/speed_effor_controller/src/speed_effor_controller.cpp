@@ -61,9 +61,9 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
             PID_Integral_Limit |
             PID_Derivative_On_Measurement |
             PID_Trapezoid_Intergral |
-            PID_OutputFilter |
+            // PID_OutputFilter |
             PID_ChangingIntegrationRate |
-            PID_DerivativeFilter |
+            // PID_DerivativeFilter |
             PID_ErrorHandle
         ),
         .IntegralLimit = static_cast<float>(params_.IntegralLimit),
@@ -210,7 +210,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     (void)state_effort;
 
     // 计算输出
-    double effort_command = pid_controller_->calculate(reference_speed, state_speed);
+    double effort_command = pid_controller_->calculate(state_speed, reference_speed);
     effort_command += front_feed_.load() * reference_speed;
 
     // 限制输出
@@ -227,6 +227,26 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(),"Exception during writing command interface: %s",e.what());
         return controller_interface::return_type::ERROR;
+    }
+
+    // pub 消息
+
+    try{
+        auto vel_state = std_msgs::msg::Float32();
+        auto eff_state = std_msgs::msg::Float32();
+        auto vel_ref = std_msgs::msg::Float32();
+        auto eff_ref = std_msgs::msg::Float32();
+        vel_state.data = state_speed;
+        eff_state.data = state_effort;
+        vel_ref.data = reference_speed;
+        eff_ref.data = effort_command;
+        velocity_state_publisher_->publish(vel_state);
+        effort_state_publisher_->publish(eff_state);
+        velocity_reference_publisher_->publish(vel_ref);
+        effort_reference_publisher_->publish(eff_ref);
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing velocity state: %s",e.what());
     }
 
     return controller_interface::return_type::OK;
