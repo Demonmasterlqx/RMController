@@ -49,6 +49,7 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
 
     // 设置参数
     front_feed_.store(params_.front_feed);
+    friction_compensation_ = params_.friction_compensation;
 
     pid_config_ = PID_Init_Config_s{
         .Kp = static_cast<float>(params_.Kp),
@@ -212,6 +213,16 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     // 计算输出
     double effort_command = pid_controller_->calculate(state_speed, reference_speed);
     effort_command += front_feed_.load() * reference_speed;
+
+    if(std::abs(reference_speed) <= 1e-6){
+        effort_command = effort_command
+    }
+    else if(reference_speed < 0){
+        effort_command -= friction_compensation_;
+    }
+    else if(reference_speed > 0){
+        effort_command += friction_compensation_;
+    }
 
     // 限制输出
     if(effort_command > params_.MaxOut){

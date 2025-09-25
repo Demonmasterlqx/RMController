@@ -103,6 +103,9 @@ private:
     // front_feed
     std::atomic<double> front_feed_{0.0};
 
+    // 摩擦力补偿
+    double friction_compensation_;
+
     // PID controller
     std::shared_ptr<PIDController> pid_controller_=nullptr;
 
