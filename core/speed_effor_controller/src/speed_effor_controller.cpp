@@ -215,7 +215,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
     effort_command += front_feed_.load() * reference_speed;
 
     if(std::abs(reference_speed) <= 1e-6){
-        effort_command = effort_command
+        effort_command = effort_command;
     }
     else if(reference_speed < 0){
         effort_command -= friction_compensation_;
