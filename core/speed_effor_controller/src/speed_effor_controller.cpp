@@ -94,14 +94,14 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     try{
         // 设置publisher
 
-        velocity_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.speed_state_name, 1);
-        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/state/" + params_.speed_state_name).c_str());
-        effort_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/state/" + params_.effort_state_name, 1);
-        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/state/" + params_.effort_state_name).c_str());
-        effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.effort_command_name, 1);
-        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/reference/" + params_.effort_command_name).c_str());
-        velocity_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(params_.joint + "/reference/" + params_.speed_state_name, 1);
-        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (params_.joint + "/reference/" + params_.speed_state_name).c_str());
+        velocity_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/state/" + params_.speed_state_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/state/" + params_.speed_state_name).c_str());
+        effort_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/state/" + params_.effort_state_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/state/" + params_.effort_state_name).c_str());
+        effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.effort_command_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.effort_command_name).c_str());
+        velocity_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.speed_state_name, 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.speed_state_name).c_str());
 
     }
     catch(const std::exception & e){

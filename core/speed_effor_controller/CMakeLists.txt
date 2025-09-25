@@ -32,6 +32,8 @@ option(DEBUG "启动debug发布者" ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(backward_ros REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
+
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
@@ -69,12 +71,15 @@ target_include_directories(speed_effor_controller PUBLIC
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 target_link_libraries(speed_effor_controller
   speed_effor_controller_parameters
-  pid_controller
+  rm_pid_controller
 )
 
 ament_target_dependencies(speed_effor_controller
   ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
+
+target_link_libraries(speed_effor_controller Eigen3::Eigen)
+
 
 ament_export_include_directories(
   include

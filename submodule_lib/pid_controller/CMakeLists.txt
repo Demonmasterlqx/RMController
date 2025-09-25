@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(pid_controller CXX)
+project(rm_pid_controller CXX)
 
 # 编译优化
 set(CMAKE_CXX_STANDARD 17)
