@@ -15,8 +15,14 @@ test_velocity_effort_controller:
     chainable: false
     command_topic: speed
     reference_timeout: 0.1
-    K_P: 5.0
-    K_I: 2.0
-    K_D: 10.0
-    front_feed: 0.0
-    forgetting_factor: 0.1
+    Kp: 20.0
+    Ki: 0.0
+    Kd: 0.000
+    MaxOut: 20.0
+    DeadBand: 0.01
+    IntegralLimit: 10.0
+    CoefA: 0.0
+    CoefB: 100000.0
+
+    front_feed: 10.0
+    friction_compensation: 0.0
