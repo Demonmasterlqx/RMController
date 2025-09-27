@@ -124,3 +124,8 @@ speed_effor_controller:
     description: "用于轮子摩擦力不均匀的情况，会按照给定的值，在pid的最后，按照对应的方向，加上这个值，以减轻摩擦力影响"
   }
 
+  max_delta: {
+    type: double,
+    default_value: 0.001,
+    description: "单次更新的最大斜率限制"
+  }

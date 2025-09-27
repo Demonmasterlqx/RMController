@@ -9,6 +9,10 @@ controller_interface::CallbackReturn SpeedEffortController::on_init(){
     #ifdef DEBUG
     debug_time_interval_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>( std::string(get_node()->get_name()) + "/time_interval", 1);
     RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) + "/time_interval").c_str());
+    debug_delta_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>( std::string(get_node()->get_name()) + "/delta", 1);
+    RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) + "/delta").c_str());
+    debug_after_delta_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>( std::string(get_node()->get_name()) + "/after_delta", 1);
+    RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) + "/after_delta").c_str());
     last_time_ = get_node()->now();
     #endif
 
@@ -41,6 +45,56 @@ bool SpeedEffortController::on_set_chained_mode(bool){
     return true;
 }
 
+controller_interface::CallbackReturn SpeedEffortController::on_cleanup(const rclcpp_lifecycle::State & previous_state){
+    RCLCPP_INFO(get_node()->get_logger(),"cleaning up from state %s",previous_state.label().c_str());
+    speed_command_buffer_.writeFromNonRT(0.0);
+    return controller_interface::CallbackReturn::SUCCESS;
+}
+
+controller_interface::InterfaceConfiguration SpeedEffortController::command_interface_configuration() const{
+    controller_interface::InterfaceConfiguration config;
+    config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
+    config.names.push_back(params_.joint + "/" + params_.effort_command_name);
+
+    return config;
+}
+
+controller_interface::InterfaceConfiguration SpeedEffortController::state_interface_configuration() const{
+    controller_interface::InterfaceConfiguration config;
+    config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
+    config.names.push_back(params_.joint + "/" + params_.speed_state_name);
+    config.names.push_back(params_.joint + "/" + params_.effort_state_name);
+
+    return config;
+}
+
+
+controller_interface::CallbackReturn SpeedEffortController::on_activate(const rclcpp_lifecycle::State & previous_state){
+    RCLCPP_INFO(get_node()->get_logger(),"activating from state %s",previous_state.label().c_str());
+    speed_command_buffer_.writeFromNonRT(0.0);
+    return controller_interface::CallbackReturn::SUCCESS;
+}
+
+controller_interface::CallbackReturn SpeedEffortController::on_deactivate(const rclcpp_lifecycle::State & previous_state){
+    RCLCPP_INFO(get_node()->get_logger(),"deactivating from state %s",previous_state.label().c_str());
+    speed_command_buffer_.writeFromNonRT(0.0);
+    return controller_interface::CallbackReturn::SUCCESS;
+}
+
+void SpeedEffortController::speed_command_callback(const std_msgs::msg::Float32::SharedPtr msg){
+    reset_watchdog();
+    speed_command_buffer_.writeFromNonRT(msg->data);
+}
+
+controller_interface::return_type SpeedEffortController::update_reference_from_subscribers(){
+    // nothing to do, as the callback already updated the buffer
+    return controller_interface::return_type::OK;
+}
+
+void SpeedEffortController::set_command_used(){
+    command_used_.store(true);
+}
+
 controller_interface::CallbackReturn SpeedEffortController::on_configure(const rclcpp_lifecycle::State &){
     params_ = param_listener_->get_params();
 
@@ -50,6 +104,7 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     // 设置参数
     front_feed_.store(params_.front_feed);
     friction_compensation_ = params_.friction_compensation;
+    max_delta_ = params_.max_delta;
 
     pid_config_ = PID_Init_Config_s{
         .Kp = static_cast<float>(params_.Kp),
@@ -111,156 +166,6 @@ controller_interface::CallbackReturn SpeedEffortController::on_configure(const r
     }
 
     return controller_interface::CallbackReturn::SUCCESS;
-}
-
-controller_interface::CallbackReturn SpeedEffortController::on_cleanup(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(),"cleaning up from state %s",previous_state.label().c_str());
-    speed_command_buffer_.writeFromNonRT(0.0);
-    return controller_interface::CallbackReturn::SUCCESS;
-}
-
-controller_interface::InterfaceConfiguration SpeedEffortController::command_interface_configuration() const{
-    controller_interface::InterfaceConfiguration config;
-    config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-    config.names.push_back(params_.joint + "/" + params_.effort_command_name);
-
-    return config;
-}
-
-controller_interface::InterfaceConfiguration SpeedEffortController::state_interface_configuration() const{
-    controller_interface::InterfaceConfiguration config;
-    config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-    config.names.push_back(params_.joint + "/" + params_.speed_state_name);
-    config.names.push_back(params_.joint + "/" + params_.effort_state_name);
-
-    return config;
-}
-
-
-controller_interface::CallbackReturn SpeedEffortController::on_activate(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(),"activating from state %s",previous_state.label().c_str());
-    speed_command_buffer_.writeFromNonRT(0.0);
-    return controller_interface::CallbackReturn::SUCCESS;
-}
-
-controller_interface::CallbackReturn SpeedEffortController::on_deactivate(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(),"deactivating from state %s",previous_state.label().c_str());
-    speed_command_buffer_.writeFromNonRT(0.0);
-    return controller_interface::CallbackReturn::SUCCESS;
-}
-
-void SpeedEffortController::speed_command_callback(const std_msgs::msg::Float32::SharedPtr msg){
-    reset_watchdog();
-    speed_command_buffer_.writeFromNonRT(msg->data);
-}
-
-controller_interface::return_type SpeedEffortController::update_reference_from_subscribers(){
-    // nothing to do, as the callback already updated the buffer
-    return controller_interface::return_type::OK;
-}
-
-void SpeedEffortController::set_command_used(){
-    command_used_.store(true);
-}
-
-controller_interface::return_type SpeedEffortController::update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period){
-
-    // 输出和上一次的时间间隔
-    #ifdef DEBUG
-
-    try{
-        auto msg = std_msgs::msg::Float32();
-        msg.data = (time - last_time_).seconds();
-        last_time_ = time;
-        debug_time_interval_publisher_->publish(msg);
-    }
-    catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing debug time interval: %s",e.what());
-    }
-
-    #endif
-    
-
-    (void)time;
-    (void)period;
-
-    double reference_speed=0.0;
-    double state_speed = 0.0;
-    double state_effort = 0.0;
-    try{
-        if(!chainable_){
-            reference_speed=*speed_command_buffer_.readFromRT();
-        }
-        else{
-            reset_watchdog();
-            reference_speed=reference_interfaces_[0];
-        }
-        if(is_watchdog_triggered()){
-            reference_speed=0.0;
-        }
-        set_command_used();
-
-        state_speed = state_interfaces_[SPEED_STATE_INDEX].get_value();
-        state_effort = state_interfaces_[EFFORT_STATE_INDEX].get_value();
-    }
-    catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"Exception during reading interfaces: %s",e.what());
-        return controller_interface::return_type::ERROR;
-    }
-
-    (void)state_effort;
-
-    // 计算输出
-    double effort_command = pid_controller_->calculate(state_speed, reference_speed);
-    effort_command += front_feed_.load() * reference_speed;
-
-    if(std::abs(reference_speed) <= 1e-6){
-        effort_command = effort_command;
-    }
-    else if(reference_speed < 0){
-        effort_command -= friction_compensation_;
-    }
-    else if(reference_speed > 0){
-        effort_command += friction_compensation_;
-    }
-
-    // 限制输出
-    if(effort_command > params_.MaxOut){
-        effort_command = params_.MaxOut;
-    }
-    else if(effort_command < -params_.MaxOut){
-        effort_command = -params_.MaxOut;
-    }
-
-    try{
-        command_interfaces_[EFFORT_COMMAND_INDEX].set_value(effort_command);
-    }
-    catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"Exception during writing command interface: %s",e.what());
-        return controller_interface::return_type::ERROR;
-    }
-
-    // pub 消息
-
-    try{
-        auto vel_state = std_msgs::msg::Float32();
-        auto eff_state = std_msgs::msg::Float32();
-        auto vel_ref = std_msgs::msg::Float32();
-        auto eff_ref = std_msgs::msg::Float32();
-        vel_state.data = state_speed;
-        eff_state.data = state_effort;
-        vel_ref.data = reference_speed;
-        eff_ref.data = effort_command;
-        velocity_state_publisher_->publish(vel_state);
-        effort_state_publisher_->publish(eff_state);
-        velocity_reference_publisher_->publish(vel_ref);
-        effort_reference_publisher_->publish(eff_ref);
-    }
-    catch(const std::exception & e){
-        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing velocity state: %s",e.what());
-    }
-
-    return controller_interface::return_type::OK;
 }
 
 void SpeedEffortController::reset_watchdog(){

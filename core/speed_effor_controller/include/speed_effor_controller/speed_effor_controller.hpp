@@ -24,7 +24,7 @@
 
 #include "pid_controller/pid_controller.hpp"
 
-// #define DEBUG
+#define DEBUG
 
 namespace RM_hardware_interface{
 
@@ -122,11 +122,20 @@ private:
 
     void speed_command_callback(const std_msgs::msg::Float32::SharedPtr msg);
 
+    // 上次一次的参考速度，用于斜率限制
+    double last_reference_speed=0.0;
+    // 最大斜率
+    double max_delta_=0.001;
+
     #ifdef DEBUG
 
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr debug_time_interval_publisher_=nullptr;
     // 上一次接收到命令的时间，也就是调用 update_and_write_commands 的时间
     rclcpp::Time last_time_ = rclcpp::Time(0,0);
+
+    // 斜率发布器
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr debug_delta_publisher_=nullptr;
+    rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr debug_after_delta_publisher_=nullptr;
     
     #endif
 
