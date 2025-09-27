@@ -24,7 +24,7 @@
 
 #include "pid_controller/pid_controller.hpp"
 
-#define DEBUG
+// #define DEBUG
 
 namespace RM_hardware_interface{
 

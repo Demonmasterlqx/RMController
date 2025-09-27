@@ -47,12 +47,10 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         return controller_interface::return_type::ERROR;
     }
 
-    double maxx = 0.001;
-
     // 斜率限制
     double delta = (reference_speed - last_reference_speed);
-    if(std::abs(delta) > maxx){
-        reference_speed = last_reference_speed + std::copysign(maxx, delta);
+    if(std::abs(delta) > max_delta_){
+        reference_speed = last_reference_speed + std::copysign(max_delta_, delta);
     }
 
 
