@@ -1,0 +1,19 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 1000  # Hz
+
+    test_position_speed_controller:
+      type: RM_hardware_interface/PositionSpeedController
+
+test_position_speed_controller:
+  ros__parameters:
+    type: RM_hardware_interface/PositionSpeedController
+    joint: joint_1
+    effort_command_name: effort
+    speed_state_name: velocity
+    position_state_name: position
+    effort_state_name: effort
+    reference_timeout: 0.1
+    chainable: false
+    command_topic: speed_position_command
+

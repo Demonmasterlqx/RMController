@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="test_robot">
+
+    <xacro:include filename="robot.hardware.urdf" />
+    <xacro:include filename="robot.define.urdf" />
+
+</robot>

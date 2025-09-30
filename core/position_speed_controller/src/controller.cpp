@@ -1,8 +1,10 @@
-#include "speed_effor_controller/speed_effor_controller.hpp"
+#include "position_speed_controller/position_speed_controller.hpp"
 
 namespace RM_hardware_interface{
 
-controller_interface::return_type SpeedEffortController::update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period){
+controller_interface::return_type PositionSpeedController::update_and_write_commands(const rclcpp::Time & time, const rclcpp::Duration & period){
+
+    (void)period;
 
     #ifdef DEBUG
 
@@ -10,7 +12,7 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
         auto msg = std_msgs::msg::Float32();
         msg.data = (time - last_time_).seconds();
         last_time_ = time;
-        debug_time_interval_publisher_->publish(msg);
+        call_period_publisher_->publish(msg);
     }
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing debug time interval: %s",e.what());
@@ -18,8 +20,67 @@ controller_interface::return_type SpeedEffortController::update_and_write_comman
 
     #endif
 
+    // 获取数据
+    double current_position = 0;
+    double current_speed = 0;
+    double current_effort = 0;
+    double position_command=0.0;
+    double speed_command=0.0;
+
+    try{
+        current_position = state_interfaces_[POSITION_STATE_INDEX].get_value();
+        current_speed = state_interfaces_[SPEED_STATE_INDEX].get_value();
+        current_effort = state_interfaces_[EFFORT_STATE_INDEX].get_value();
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during getting state interface value: %s",e.what());
+        return controller_interface::return_type::ERROR;
+    }
+
+    // 获取命令
+    if(chainable_){
+        speed_command = reference_interfaces_[CHAINED_SPEED_COMMAND_INDEX];
+        position_command = reference_interfaces_[CHAINED_POSITION_COMMAND_INDEX];
+        watchdog_->reset();
+    }
+    else{
+        auto command = command_buffer_.readFromRT();
+        if(command!=nullptr){
+            position_command = command->position;
+            speed_command = command->speed;
+        }
+    }
+
+    if (watchdog_->is_triggered()){
+        speed_command = 0.0;
+        position_command = current_position;
+    }
+
+    // 控制逻辑
+    double effort_command=0.0;
 
 
+    // pub
+    try{
+        auto msg = std_msgs::msg::Float32();
+        msg.data = position_command;
+        position_reference_publisher_->publish(msg);
+        msg.data = speed_command;
+        speed_reference_publisher_->publish(msg);
+        msg.data = current_position;
+        position_state_publisher_->publish(msg);
+        msg.data = current_speed;
+        velocity_state_publisher_->publish(msg);
+        msg.data = current_effort;
+        effort_state_publisher_->publish(msg);
+        msg.data = effort_command;
+        effort_reference_publisher_->publish(msg);
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing state or reference: %s",e.what());
+    }
+
+    return controller_interface::return_type::OK;
 
 }
 
