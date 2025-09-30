@@ -1,0 +1,101 @@
+speed_effor_controller:
+  reference_timeout: {
+    type: double,
+    default_value: 0.0,
+    description: "看门狗，在指定时间内没有收到消息就直接将命令置零单位是s",
+  }
+
+  joint: {
+    type: string,
+    default_value: "",
+    read_only: true,
+    description: "被控制的关节名称",
+  }
+
+  effort_command_name: {
+    type: string,
+    default_value: "effort",
+    read_only: true,
+    description: "力矩接口的名字",
+  }
+
+  speed_state_name: {
+    type: string,
+    default_value: "velocity",
+    read_only: true,
+    description: "速度接口的名字",
+  }
+
+  position_state_name: {
+    type: string,
+    default_value: "position",
+    read_only: true,
+    description: "位置接口的名字",
+  }
+
+  effort_state_name: {
+    type: string,
+    default_value: "effort",
+    read_only: true,
+    description: "力矩接口的名字",
+  }
+
+  chainable: {
+    type: bool,
+    default_value: false,
+    description: "是否打开级联控制，如果是则将会结束监听话题，并且不再订阅命令",
+  }
+
+  command_topic: {
+    type: string,
+    default_value: "speed_position",
+    description: "订阅的速度位置命令话题",
+  }
+
+  pos_Kp : {
+    type: double,
+    default_value: 0.0,
+    description: "位置比例增益",
+  }
+
+  pos_Ki : {
+    type: double,
+    default_value: 0.0,
+    description: "积分增益",
+  }
+
+  pos_MaxI : {
+    type: double,
+    default_value: 0.0,
+    description: "位置环积分限幅",
+  }
+
+  pos_MaxOut : {
+    type: double,
+    default_value: 0.0,
+    description: "位置环输出限幅",
+  }
+
+  vel_Kp : {
+    type: double,
+    default_value: 0.0,
+    description: "速度比例增益",
+  }
+
+  vel_Ki : {
+    type: double,
+    default_value: 0.0,
+    description: "速度积分增益",
+  }
+
+  vel_MaxI : {
+    type: double,
+    default_value: 0.0,
+    description: "速度环积分限幅",
+  }
+
+  vel_MaxOut : {
+    type: double,
+    default_value: 0.0,
+    description: "速度环输出限幅",
+  }

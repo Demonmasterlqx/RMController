@@ -1,0 +1,7 @@
+<library path="position_speed_controller">
+  <class name="RM_hardware_interface/PositionSpeedController"
+         type="RM_hardware_interface::PositionSpeedController" base_class_type="controller_interface::ChainableControllerInterface">
+  <description>
+    The position speed controller transforms position and speed commands into effort commands for the robot's joints.</description>
+  </class>
+</library>
