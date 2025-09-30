@@ -76,6 +76,12 @@ speed_effor_controller:
     description: "位置环输出限幅",
   }
 
+  pos_Intergral_Limit : {
+    type: double,
+    default_value: 0.0,
+    description: "位置环积分限幅",
+  }
+
   vel_Kp : {
     type: double,
     default_value: 0.0,
@@ -98,4 +104,10 @@ speed_effor_controller:
     type: double,
     default_value: 0.0,
     description: "速度环输出限幅",
+  }
+
+  vel_Intergral_Limit : {
+    type: double,
+    default_value: 0.0,
+    description: "速度环积分限幅",
   }

@@ -106,6 +106,65 @@ controller_interface::CallbackReturn PositionSpeedController::on_configure(const
         return controller_interface::CallbackReturn::ERROR;
     }
 
+    // 设置位置PID
+    try{
+
+        auto pid_config = PID_Init_Config_s{
+            .Kp = static_cast<float>(params_.pos_Kp),
+            .Ki = static_cast<float>(params_.pos_Ki),
+            .Kd = 0,
+            .MaxOut = static_cast<float>(params_.pos_MaxOut),
+            .DeadBand = 0.001,
+            .Improve = static_cast<PID_Improvement_e> (
+                PID_Integral_Limit | 
+                PID_Trapezoid_Intergral | 
+                PID_Derivative_On_Measurement | 
+                PID_ErrorHandle
+            ),
+            .IntegralLimit = static_cast<float>(params_.pos_Intergral_Limit),
+            .CoefA = 0,
+            .CoefB = 0,
+            .Output_LPF_RC = 0,
+            .Derivative_LPF_RC = 0,
+        };
+
+        position_pid_ = std::make_shared<PIDController>(pid_config);
+
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Could not create position PID controllers: %s",e.what());
+        return controller_interface::CallbackReturn::ERROR;
+    }
+
+    // 设置速度PID
+    try{
+        auto pid_config = PID_Init_Config_s{
+            .Kp = static_cast<float>(params_.vel_Kp),
+            .Ki = static_cast<float>(params_.vel_Ki),
+            .Kd = 0,
+            .MaxOut = static_cast<float>(params_.vel_MaxOut),
+            .DeadBand = 0.001,
+            .Improve = static_cast<PID_Improvement_e> (
+                PID_Integral_Limit | 
+                PID_Trapezoid_Intergral | 
+                PID_Derivative_On_Measurement | 
+                PID_ErrorHandle
+            ),
+            .IntegralLimit = static_cast<float>(params_.vel_Intergral_Limit),
+            .CoefA = 0,
+            .CoefB = 0,
+            .Output_LPF_RC = 0,
+            .Derivative_LPF_RC = 0,
+        };
+
+        speed_pid_ = std::make_shared<PIDController>(pid_config);
+
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Could not create speed PID controllers: %s",e.what());
+        return controller_interface::CallbackReturn::ERROR;
+    }
+
     chainable_ = params_.chainable;
 
     if(!chainable_){
