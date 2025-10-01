@@ -83,9 +83,9 @@ controller_interface::return_type PositionSpeedController::update_and_write_comm
         go_direction = (position_error >= 0) ? 1.0 : -1.0;
     }
     // 输出这里的几个值
-    RCLCPP_INFO(get_node()->get_logger(),"current_position: %f, position_command: %f",current_position,position_command);
-    RCLCPP_INFO(get_node()->get_logger(),"pos_min_: %f, pos_max_: %f",pos_min_,pos_max_);
-    RCLCPP_INFO(get_node()->get_logger(),"position_error: %f, go_direction: %f",position_error,go_direction);
+    // RCLCPP_INFO(get_node()->get_logger(),"current_position: %f, position_command: %f",current_position,position_command);
+    // RCLCPP_INFO(get_node()->get_logger(),"pos_min_: %f, pos_max_: %f",pos_min_,pos_max_);
+    // RCLCPP_INFO(get_node()->get_logger(),"position_error: %f, go_direction: %f",position_error,go_direction);
 
     position_pid_->calculate(0, position_error);
     double position_output = position_pid_->get_output();
