@@ -17,3 +17,17 @@ test_position_speed_controller:
     chainable: false
     command_topic: speed_position_command
 
+    pos_Kp: 1.0
+    pos_Ki: 1000.0
+    pos_Intergral_Limit: 1.0
+    pos_MaxOut: 0.5
+
+    vel_Kp: 1.0
+    vel_Ki: 1000.0
+    vel_Intergral_Limit: 1.0
+    vel_MaxOut: 3.0
+
+    vel_max_acceleration: 0.5
+    vel_max_limit: 1.0
+
+

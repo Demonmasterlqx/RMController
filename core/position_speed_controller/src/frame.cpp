@@ -79,6 +79,7 @@ controller_interface::CallbackReturn PositionSpeedController::on_deactivate(cons
 
 void PositionSpeedController::position_speed_command_callback(const rm_controller_interface::msg::PositionSpeedCommand::SharedPtr msg){
     watchdog_->reset();
+    RCLCPP_INFO(get_node()->get_logger(),"Received command: position: %f, speed: %f",msg->position,msg->speed);
     command_buffer_.writeFromNonRT(*msg);
 }
 
@@ -165,12 +166,21 @@ controller_interface::CallbackReturn PositionSpeedController::on_configure(const
         return controller_interface::CallbackReturn::ERROR;
     }
 
+    // 设置轨迹生成器
+    try{
+        trajectory_generator_ = std::make_shared<TrajectoryGenerator>(params_.vel_max_limit, params_.vel_max_acceleration);
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Could not create trajectory generator: %s",e.what());
+        return controller_interface::CallbackReturn::ERROR;
+    }
+
     chainable_ = params_.chainable;
 
     if(!chainable_){
         RCLCPP_INFO_STREAM(get_node()->get_logger(),"not in chained mode, subscribing to topic " << params_.command_topic);
         command_subscriber_ = get_node()->create_subscription<rm_controller_interface::msg::PositionSpeedCommand>(
-            params_.command_topic,1,
+            std::string(get_node()->get_name()) + "/" + params_.command_topic,1,
             std::bind(&PositionSpeedController::position_speed_command_callback,this,std::placeholders::_1)
         );
         set_chained_mode(false);
@@ -194,6 +204,12 @@ controller_interface::CallbackReturn PositionSpeedController::on_configure(const
         RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/state/" + params_.effort_state_name).c_str());
         effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.effort_command_name, 1);
         RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.effort_command_name).c_str());
+        trajectory_position_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/trajectory/" + "position", 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/trajectory/" + "position").c_str());
+        trajectory_speed_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/trajectory/" + "velocity", 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/trajectory/" + "velocity").c_str());
+        trajectory_state_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/trajectory/" + "active", 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/trajectory/" + "active").c_str());
     }
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(),"Could not create publishers: %s",e.what());
