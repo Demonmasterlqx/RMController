@@ -5,9 +5,20 @@
 #include <rm_controller_interface/msg/position_speed_command.hpp>
 #include <chrono>
 #include <cmath>
+#include <string>
 
 namespace position_speed_sender
 {
+
+/**
+ * @brief 工作模式枚举
+ */
+enum class WorkMode
+{
+  POSITION_SINE_SPEED_FIXED,    // 模式1: 位置正弦波，速度固定
+  SPEED_SINE_POSITION_FIXED,    // 模式2: 速度正弦波，位置固定
+  POSITION_SINE_SPEED_DERIVED   // 模式3: 位置正弦波，速度求导
+};
 
 class PositionSpeedSender : public rclcpp::Node
 {
@@ -24,7 +35,7 @@ public:
 
 private:
   /**
-   * @brief 定时器回调函数，发送正弦波位置命令
+   * @brief 定时器回调函数，发送位置速度命令
    */
   void timer_callback();
 
@@ -35,18 +46,45 @@ private:
    */
   double calculate_sine_position(double time_sec);
 
+  /**
+   * @brief 计算正弦波速度
+   * @param time_sec 当前时间（秒）
+   * @return 正弦波速度值
+   */
+  double calculate_sine_speed(double time_sec);
+
+  /**
+   * @brief 计算位置的导数（速度）
+   * @param time_sec 当前时间（秒）
+   * @return 位置导数值
+   */
+  double calculate_position_derivative(double time_sec);
+
+  /**
+   * @brief 根据字符串解析工作模式
+   * @param mode_str 模式字符串
+   * @return 工作模式枚举
+   */
+  WorkMode parse_work_mode(const std::string& mode_str);
+
   // ROS2发布器
   rclcpp::Publisher<rm_controller_interface::msg::PositionSpeedCommand>::SharedPtr publisher_;
   
   // 定时器
   rclcpp::TimerBase::SharedPtr timer_;
   
+  // 工作模式
+  WorkMode work_mode_;
+  
   // 正弦波参数
   double amplitude_;        // 振幅
   double frequency_;        // 频率 (Hz)
   double offset_;          // 偏移量
   double phase_;           // 相位
+  
+  // 固定值参数
   double fixed_speed_;     // 固定速度值
+  double fixed_position_;  // 固定位置值
   
   // 时间相关
   std::chrono::time_point<std::chrono::steady_clock> start_time_;

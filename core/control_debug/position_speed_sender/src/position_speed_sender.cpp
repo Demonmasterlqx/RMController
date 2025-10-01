@@ -7,19 +7,24 @@ PositionSpeedSender::PositionSpeedSender()
 : Node("position_speed_sender")
 {
   // 声明并获取参数
+  this->declare_parameter("work_mode", "position_sine_speed_fixed");
   this->declare_parameter("amplitude", 1.0);
   this->declare_parameter("frequency", 1.0);
   this->declare_parameter("offset", 0.0);
   this->declare_parameter("phase", 0.0);
   this->declare_parameter("fixed_speed", 0.0);
+  this->declare_parameter("fixed_position", 0.0);
   this->declare_parameter("publish_frequency", 100.0);
   this->declare_parameter("topic_name", "position_speed_command");
 
+  std::string mode_str = this->get_parameter("work_mode").as_string();
+  work_mode_ = parse_work_mode(mode_str);
   amplitude_ = this->get_parameter("amplitude").as_double();
   frequency_ = this->get_parameter("frequency").as_double();
   offset_ = this->get_parameter("offset").as_double();
   phase_ = this->get_parameter("phase").as_double();
   fixed_speed_ = this->get_parameter("fixed_speed").as_double();
+  fixed_position_ = this->get_parameter("fixed_position").as_double();
   publish_frequency_ = this->get_parameter("publish_frequency").as_double();
   topic_name_ = this->get_parameter("topic_name").as_string();
 
@@ -39,6 +44,22 @@ PositionSpeedSender::PositionSpeedSender()
 
   RCLCPP_INFO(this->get_logger(), 
     "PositionSpeedSender initialized with parameters:");
+  
+  std::string mode_name;
+  switch(work_mode_) {
+    case WorkMode::POSITION_SINE_SPEED_FIXED:
+      mode_name = "Position Sine + Speed Fixed";
+      break;
+    case WorkMode::SPEED_SINE_POSITION_FIXED:
+      mode_name = "Speed Sine + Position Fixed";
+      break;
+    case WorkMode::POSITION_SINE_SPEED_DERIVED:
+      mode_name = "Position Sine + Speed Derived";
+      break;
+  }
+  
+  RCLCPP_INFO(this->get_logger(), 
+    "  - Work mode: %s", mode_name.c_str());
   RCLCPP_INFO(this->get_logger(), 
     "  - Amplitude: %.3f", amplitude_);
   RCLCPP_INFO(this->get_logger(), 
@@ -49,6 +70,8 @@ PositionSpeedSender::PositionSpeedSender()
     "  - Phase: %.3f rad", phase_);
   RCLCPP_INFO(this->get_logger(), 
     "  - Fixed speed: %.3f", fixed_speed_);
+  RCLCPP_INFO(this->get_logger(), 
+    "  - Fixed position: %.3f", fixed_position_);
   RCLCPP_INFO(this->get_logger(), 
     "  - Publish frequency: %.1f Hz", publish_frequency_);
   RCLCPP_INFO(this->get_logger(), 
@@ -63,11 +86,33 @@ void PositionSpeedSender::timer_callback()
     current_time - start_time_);
   double time_sec = elapsed_time.count() / 1000000.0;
 
-  // 计算正弦波位置
-  double position = calculate_sine_position(time_sec);
-  
-  // 使用固定速度值
-  double speed = fixed_speed_;
+  double position, speed;
+
+  // 根据工作模式计算位置和速度
+  switch(work_mode_) {
+    case WorkMode::POSITION_SINE_SPEED_FIXED:
+      // 模式1: 位置正弦波，速度固定
+      position = calculate_sine_position(time_sec);
+      speed = fixed_speed_;
+      break;
+      
+    case WorkMode::SPEED_SINE_POSITION_FIXED:
+      // 模式2: 速度正弦波，位置固定
+      position = fixed_position_;
+      speed = calculate_sine_speed(time_sec);
+      break;
+      
+    case WorkMode::POSITION_SINE_SPEED_DERIVED:
+      // 模式3: 位置正弦波，速度求导
+      position = calculate_sine_position(time_sec);
+      speed = calculate_position_derivative(time_sec);
+      break;
+      
+    default:
+      position = 0.0;
+      speed = 0.0;
+      break;
+  }
 
   // 创建并发送消息
   auto message = rm_controller_interface::msg::PositionSpeedCommand();
@@ -91,6 +136,32 @@ void PositionSpeedSender::timer_callback()
 double PositionSpeedSender::calculate_sine_position(double time_sec)
 {
   return amplitude_ * std::sin(2.0 * M_PI * frequency_ * time_sec + phase_) + offset_;
+}
+
+double PositionSpeedSender::calculate_sine_speed(double time_sec)
+{
+  return amplitude_ * std::sin(2.0 * M_PI * frequency_ * time_sec + phase_) + offset_;
+}
+
+double PositionSpeedSender::calculate_position_derivative(double time_sec)
+{
+  return amplitude_ * frequency_ * 2.0 * M_PI * 
+         std::cos(2.0 * M_PI * frequency_ * time_sec + phase_);
+}
+
+WorkMode PositionSpeedSender::parse_work_mode(const std::string& mode_str)
+{
+  if (mode_str == "position_sine_speed_fixed" || mode_str == "1") {
+    return WorkMode::POSITION_SINE_SPEED_FIXED;
+  } else if (mode_str == "speed_sine_position_fixed" || mode_str == "2") {
+    return WorkMode::SPEED_SINE_POSITION_FIXED;
+  } else if (mode_str == "position_sine_speed_derived" || mode_str == "3") {
+    return WorkMode::POSITION_SINE_SPEED_DERIVED;
+  } else {
+    RCLCPP_WARN(this->get_logger(), 
+      "Unknown work mode '%s', using default mode 1", mode_str.c_str());
+    return WorkMode::POSITION_SINE_SPEED_FIXED;
+  }
 }
 
 } // namespace position_speed_sender
