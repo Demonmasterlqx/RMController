@@ -101,12 +101,6 @@ private:
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> effort_reference_publisher_=nullptr;
     // topic命令sub
     rclcpp::Subscription<rm_controller_interface::msg::PositionSpeedCommand>::SharedPtr command_subscriber_=nullptr;
-    // 轨迹 position 发布器
-    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> trajectory_position_publisher_=nullptr;
-    // 轨迹 speed 发布器
-    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> trajectory_speed_publisher_=nullptr;
-    // 轨迹状态发布器
-    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> trajectory_state_publisher_=nullptr;
 
     // 回调速度命令的缓冲区
     realtime_tools::RealtimeBuffer<rm_controller_interface::msg::PositionSpeedCommand> command_buffer_;
@@ -122,12 +116,6 @@ private:
     std::shared_ptr<PIDController> position_pid_=nullptr;
     // 速度环PID
     std::shared_ptr<PIDController> speed_pid_=nullptr;
-
-    // 轨迹生成器
-    std::shared_ptr<TrajectoryGenerator> trajectory_generator_=nullptr;
-
-    // 重新规划轨迹的阈值
-    double replan_threshold_ = 1.0;
 
     // callback
     void position_speed_command_callback(const rm_controller_interface::msg::PositionSpeedCommand::SharedPtr msg);

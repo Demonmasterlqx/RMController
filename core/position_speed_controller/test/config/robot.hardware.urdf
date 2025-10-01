@@ -11,7 +11,8 @@
         <joint name="joint_1">
 
             <param name="can_id">5</param>
-            <param name="motor_type">C620</param>
+            <param name="motor_type">C610</param>
+            <param name="reverse">false</param>
 
             <command_interface name="effort"/>
             <state_interface name="position"/>

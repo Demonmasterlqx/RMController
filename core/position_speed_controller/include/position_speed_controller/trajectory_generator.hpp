@@ -173,6 +173,14 @@ public:
         return true;
     }
 
+    bool is_active() const {
+        return active_;
+    }
+
+    void cancel(){
+        active_ = false;
+    }
+
 private:
     // 所有速度的最大值
     double max_velocity_;
