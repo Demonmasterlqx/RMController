@@ -10,6 +10,10 @@ controller_interface::CallbackReturn PositionSpeedController::on_init(){
     call_period_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/time_interval", 1);
     RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/time_interval").c_str());
     last_time_ = get_node()->now();
+    direction_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/direction", 1);
+    RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/direction").c_str());
+    position_error_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/position_error", 1);
+    RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/position_error").c_str());
     #endif
 
     try{
@@ -79,7 +83,7 @@ controller_interface::CallbackReturn PositionSpeedController::on_deactivate(cons
 
 void PositionSpeedController::position_speed_command_callback(const rm_controller_interface::msg::PositionSpeedCommand::SharedPtr msg){
     watchdog_->reset();
-    RCLCPP_INFO(get_node()->get_logger(),"Received command: position: %f, speed: %f",msg->position,msg->speed);
+    RCLCPP_DEBUG(get_node()->get_logger(),"Received command: position: %f, speed: %f",msg->position,msg->speed);
     command_buffer_.writeFromNonRT(*msg);
 }
 
@@ -107,6 +111,21 @@ controller_interface::CallbackReturn PositionSpeedController::on_configure(const
         return controller_interface::CallbackReturn::ERROR;
     }
 
+    // 获取位置上下限
+    try{
+        pos_max_ = params_.pos_max;
+        pos_min_ = params_.pos_min;
+        if(pos_min_ >= pos_max_){
+            RCLCPP_ERROR(get_node()->get_logger(),"Invalid position limits: min (%f) >= max (%f)",pos_min_,pos_max_);
+            return controller_interface::CallbackReturn::ERROR;
+        }
+        RCLCPP_INFO(get_node()->get_logger(),"Position limits: min (%f), max (%f)",pos_min_,pos_max_);
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(get_node()->get_logger(),"Could not get position limits: %s",e.what());
+        return controller_interface::CallbackReturn::ERROR;
+    }
+
     // 设置位置PID
     try{
 
@@ -119,7 +138,6 @@ controller_interface::CallbackReturn PositionSpeedController::on_configure(const
             .Improve = static_cast<PID_Improvement_e> (
                 PID_Integral_Limit | 
                 PID_Trapezoid_Intergral | 
-                PID_Derivative_On_Measurement | 
                 PID_ErrorHandle
             ),
             .IntegralLimit = static_cast<float>(params_.pos_Intergral_Limit),
@@ -195,6 +213,8 @@ controller_interface::CallbackReturn PositionSpeedController::on_configure(const
         RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/state/" + params_.effort_state_name).c_str());
         effort_reference_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.effort_command_name, 1);
         RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/reference/" + params_.effort_command_name).c_str());
+        position_pid_output_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(get_node()->get_name()) +"/"+ params_.joint + "/position_pid/" + "output", 1);
+        RCLCPP_INFO(get_node()->get_logger(),"Created publisher for topic: %s", (std::string(get_node()->get_name()) +"/"+ params_.joint + "/position_pid/" + "output").c_str());
     }
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(),"Could not create publishers: %s",e.what());

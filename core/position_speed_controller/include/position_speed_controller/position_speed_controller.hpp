@@ -101,7 +101,8 @@ private:
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> effort_reference_publisher_=nullptr;
     // topic命令sub
     rclcpp::Subscription<rm_controller_interface::msg::PositionSpeedCommand>::SharedPtr command_subscriber_=nullptr;
-
+    // 位置PID输出的命令 pub
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> position_pid_output_publisher_=nullptr;
     // 回调速度命令的缓冲区
     realtime_tools::RealtimeBuffer<rm_controller_interface::msg::PositionSpeedCommand> command_buffer_;
 
@@ -110,12 +111,20 @@ private:
     // 调试信息发布器
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> call_period_publisher_=nullptr;
     rclcpp::Time last_time_;
+    // 转动方向 pub 
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> direction_publisher_=nullptr;
+    // 转动error pub
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> position_error_publisher_=nullptr;
     #endif
 
     // 位置环PID
     std::shared_ptr<PIDController> position_pid_=nullptr;
     // 速度环PID
     std::shared_ptr<PIDController> speed_pid_=nullptr;
+
+    // pos_max
+    double pos_max_=0.0;
+    double pos_min_=0.0;
 
     // callback
     void position_speed_command_callback(const rm_controller_interface::msg::PositionSpeedCommand::SharedPtr msg);

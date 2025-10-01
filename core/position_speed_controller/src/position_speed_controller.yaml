@@ -99,3 +99,15 @@ speed_effor_controller:
     default_value: 0.0,
     description: "速度环积分限幅",
   }
+
+  pos_max : {
+    type: double,
+    default_value: 6.283185307179,
+    description: "位置最大值",
+  }
+
+  pos_min : {
+    type: double,
+    default_value: 0.0,
+    description: "位置最小值",
+  }

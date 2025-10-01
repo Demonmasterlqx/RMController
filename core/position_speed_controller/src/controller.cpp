@@ -57,11 +57,40 @@ controller_interface::return_type PositionSpeedController::update_and_write_comm
         speed_command = 0.0;
     }
 
+    // 对 position_command 限幅
+    position_command = std::min(std::max(position_command, pos_min_), pos_max_);
+
     double effort_command=0.0;
-    position_pid_->calculate(current_position, position_command);
+
+    double position_error = 0;
+    // 计算最短路径后的速度和力矩方向
+    double go_direction = 0;
+
+    // 自动选择最小路径
+
+    if (std::abs(current_position - position_command) > (pos_max_ - pos_min_) * 0.5) {
+        if (current_position > position_command) {
+            position_error = (pos_max_ - current_position) + (position_command - pos_min_);
+            go_direction = 1.0;
+        } else {
+            position_error = -((pos_max_ - position_command) + (current_position - pos_min_));
+            go_direction = -1.0;
+            RCLCPP_INFO(get_node()->get_logger(),"go_direction set to -1");
+        }
+    }
+    else {
+        position_error = position_command - current_position;
+        go_direction = (position_error >= 0) ? 1.0 : -1.0;
+    }
+    // 输出这里的几个值
+    RCLCPP_INFO(get_node()->get_logger(),"current_position: %f, position_command: %f",current_position,position_command);
+    RCLCPP_INFO(get_node()->get_logger(),"pos_min_: %f, pos_max_: %f",pos_min_,pos_max_);
+    RCLCPP_INFO(get_node()->get_logger(),"position_error: %f, go_direction: %f",position_error,go_direction);
+
+    position_pid_->calculate(0, position_error);
     double position_output = position_pid_->get_output();
     if (std::abs(position_output) > std::abs(speed_command)){
-        position_output = speed_command;
+        position_output = std::abs(speed_command) * go_direction;
     }
     speed_pid_->calculate(current_speed, position_output);
     effort_command = speed_pid_->get_output();
@@ -90,6 +119,18 @@ controller_interface::return_type PositionSpeedController::update_and_write_comm
         effort_state_publisher_->publish(msg);
         msg.data = effort_command;
         effort_reference_publisher_->publish(msg);
+        msg.data = position_output;
+        position_pid_output_publisher_->publish(msg);
+
+        #ifdef DEBUG
+        auto dir_msg = std_msgs::msg::Float32();
+        dir_msg.data = (go_direction);
+        direction_publisher_->publish(dir_msg);
+        auto err_msg = std_msgs::msg::Float32();
+        err_msg.data = position_error;
+        position_error_publisher_->publish(err_msg);
+        #endif
+
     }
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(),"Exception during publishing state or reference: %s",e.what());
