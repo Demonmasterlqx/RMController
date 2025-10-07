@@ -1,0 +1,172 @@
+differential_controller:
+  motor_left:
+    {
+      type: string,
+      default_value: "motor_left",
+      description: "左侧电机的名称 / 基本标识，用于推断默认 topic 接口（可被下面具体的接口覆盖）",
+    }
+  motor_right:
+    {
+      type: string,
+      default_value: "motor_right",
+      description: "右侧电机的名称 / 基本标识，用于推断默认 topic 接口（可被下面具体的接口覆盖）",
+    }
+
+  # 可选：显式覆盖 motor 的 state/command 接口（若为空则使用 motor_left/motor_right 名称推断）
+  motor_left_state_position:
+    {
+      type: string,
+      default_value: "",
+      description: "左电机 state position 话题或接口名称（可选，覆盖默认推断）",
+    }
+  motor_left_state_velocity:
+    {
+      type: string,
+      default_value: "",
+      description: "左电机 state velocity 话题或接口名称（可选）",
+    }
+  motor_left_state_effort:
+    {
+      type: string,
+      default_value: "",
+      description: "左电机 state effort 话题或接口名称（可选）",
+    }
+  motor_left_command_position:
+    {
+      type: string,
+      default_value: "",
+      description: "左电机 command position 话题或接口名称（可选）",
+    }
+  motor_left_command_velocity:
+    {
+      type: string,
+      default_value: "",
+      description: "左电机 command velocity 话题或接口名称（可选）",
+    }
+
+  motor_right_state_position:
+    {
+      type: string,
+      default_value: "",
+      description: "右电机 state position 话题或接口名称（可选）",
+    }
+  motor_right_state_velocity:
+    {
+      type: string,
+      default_value: "",
+      description: "右电机 state velocity 话题或接口名称（可选）",
+    }
+  motor_right_state_effort:
+    {
+      type: string,
+      default_value: "",
+      description: "右电机 state effort 话题或接口名称（可选）",
+    }
+  motor_right_command_position:
+    {
+      type: string,
+      default_value: "",
+      description: "右电机 command position 话题或接口名称（可选）",
+    }
+  motor_right_command_velocity:
+    {
+      type: string,
+      default_value: "",
+      description: "右电机 command velocity 话题或接口名称（可选）",
+    }
+
+  # 机械参数
+  gear_ratio:
+    {
+      type: double,
+      default_value: 0.5,
+      description: "齿轮传动比（无量纲）。示例：0.5 表示电机轴转一圈，输出侧转 0.5 圈",
+    }
+  pitch_joint:
+    {
+      type: string,
+      default_value: "pitch_joint",
+      description: "差速器的 pitch 关节名称（当左右电机相反方向转动时运动的轴）",
+    }
+  roll_joint:
+    {
+      type: string,
+      default_value: "roll_joint",
+      description: "差速器的 roll 关节名称（当左右电机同方向转动时运动的轴）",
+    }
+
+  # 标零/校准参数
+  zero_delta_position:
+    {
+      type: double,
+      default_value: 0.1,
+      description: "标零时发送给电机的 position 偏移量（rad），用于触发位置变化以检测电机受力/使能",
+    }
+  zero_velocity:
+    {
+      type: double,
+      default_value: 1.0,
+      description: "标零时发送的 velocity（rad/s），用于在标零阶段给出短暂速度指令",
+    }
+  maximum_rotational_range:
+    {
+      type: double,
+      default_value: 6.28,
+      description: "用于数圈/绕圈检测的最大旋转范围（rad），若目标位移超过该值认为可能换圈",
+    }
+
+  zero_topic:
+    {
+      type: string,
+      default_value: "/zero_topic",
+      description: "订阅的标零触发话题（std_msgs/msg/Bool），收到 true 开始标零流程",
+    }
+  force_zero_topic:
+    {
+      type: string,
+      default_value: "/force_zero_topic",
+      description: "订阅的强制标零话题（std_msgs/msg/Bool），收到 true 时把当前角度视作零位并写入偏置",
+    }
+
+  zero_roll_position:
+    {
+      type: double,
+      default_value: 0.0,
+      description: "标零成功后 roll 关节的参考 position（rad），可用于对齐偏置",
+    }
+  zero_pitch_position:
+    {
+      type: double,
+      default_value: 1.5555,
+      description: "标零成功后 pitch 关节的参考 position（rad），可用于对齐偏置",
+    }
+  zero_timeout:
+    {
+      type: double,
+      default_value: 5.0,
+      description: "标零单次尝试的超时时间（秒），超时后可重试或失败上报",
+    }
+
+  # 可选容错参数
+  zero_retry:
+    { type: int, default_value: 3, description: "标零失败后的重试次数" }
+
+  # 发布/控制相关
+  auto_zero_on_start:
+    {
+      type: bool,
+      default_value: true,
+      description: "节点启动时是否自动执行一次标零流程",
+    }
+  is_zero_topic:
+    {
+      type: string,
+      default_value: "/controller/is_zero",
+      description: "发布标零状态（int: -1 fail, 0 in_progress, 1 success）的 topic 名称",
+    }
+  effort_enable_threshold:
+    {
+      type: double,
+      default_value: 0.01,
+      description: "用于判断 motor state effort 是否表明电机已使能的阈值",
+    }

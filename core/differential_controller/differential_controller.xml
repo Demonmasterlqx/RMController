@@ -1,0 +1,7 @@
+<library path="differential_controller">
+  <class name="RM_hardware_interface/DifferentialController"
+         type="RM_hardware_interface::DifferentialController" base_class_type="controller_interface::ChainableControllerInterface">
+  <description>
+    The differential controller transforms position and speed commands into effort commands for the robot's joints.</description>
+  </class>
+</library>
