@@ -147,10 +147,6 @@ differential_controller:
       description: "标零单次尝试的超时时间（秒），超时后可重试或失败上报",
     }
 
-  # 可选容错参数
-  zero_retry:
-    { type: int, default_value: 3, description: "标零失败后的重试次数" }
-
   # 发布/控制相关
   auto_zero_on_start:
     {
