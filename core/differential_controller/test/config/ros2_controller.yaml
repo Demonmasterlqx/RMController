@@ -16,6 +16,7 @@ test_differential_controller:
     type: RM_hardware_interface/DifferentialController
     motor_left: joint_1
     motor_right: joint_2
+    chainable: false
 
     motor_left_command_position: joint_1_position_controller/joint_1/position
     motor_right_command_position: joint_2_position_controller/joint_2/position
@@ -28,8 +29,11 @@ test_differential_controller:
     roll_joint: roll_joint
 
     zero_delta_position: 0.1
-    zero_velocity: 1.0
+    zero_velocity: 0.3
     maximum_rotational_range: 6.283185307179586476925286766559
+    effort_enable_threshold: 0.5
+
+
 
 joint_1_position_controller:
   ros__parameters:

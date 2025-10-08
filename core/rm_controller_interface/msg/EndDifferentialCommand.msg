@@ -1,0 +1,4 @@
+float32 roll_position
+float32 roll_velocity
+float32 pitch_position
+float32 pitch_velocity

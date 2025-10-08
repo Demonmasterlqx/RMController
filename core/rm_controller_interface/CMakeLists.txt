@@ -16,6 +16,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PIDParam.msg"
   "msg/PositionSpeedCommand.msg"
+  "msg/EndDifferentialCommand.msg"
 )
 
 if(BUILD_TESTING)

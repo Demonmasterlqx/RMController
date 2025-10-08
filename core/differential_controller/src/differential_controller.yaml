@@ -125,13 +125,13 @@ differential_controller:
   zero_topic:
     {
       type: string,
-      default_value: "/zero_topic",
+      default_value: "",
       description: "订阅的标零触发话题（std_msgs/msg/Bool），收到 true 开始标零流程",
     }
   force_zero_topic:
     {
       type: string,
-      default_value: "/force_zero_topic",
+      default_value: "",
       description: "订阅的强制标零话题（std_msgs/msg/Bool），收到 true 时把当前角度视作零位并写入偏置",
     }
 
@@ -164,12 +164,12 @@ differential_controller:
   is_zero_topic:
     {
       type: string,
-      default_value: "/controller/is_zero",
+      default_value: "",
       description: "发布标零状态（int: -1 fail, 0 in_progress, 1 success）的 topic 名称",
     }
   effort_enable_threshold:
     {
       type: double,
-      default_value: 0.01,
+      default_value: 0.4,
       description: "用于判断 motor state effort 是否表明电机已使能的阈值",
     }

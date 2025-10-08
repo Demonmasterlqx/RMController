@@ -75,7 +75,7 @@ controller_interface::return_type PositionSpeedController::update_and_write_comm
         } else {
             position_error = -((pos_max_ - position_command) + (current_position - pos_min_));
             go_direction = -1.0;
-            RCLCPP_INFO(get_node()->get_logger(),"go_direction set to -1");
+            RCLCPP_DEBUG(get_node()->get_logger(),"go_direction set to -1");
         }
     }
     else {

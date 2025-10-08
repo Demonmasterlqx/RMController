@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <mutex>
 
 #include "controller_interface/chainable_controller_interface.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
@@ -20,6 +21,8 @@
 #include "realtime_tools/realtime_publisher.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
+
+#include "rm_controller_interface/msg/end_differential_command.hpp"
 
 #include "differential_controller/differential_controller_parameters.hpp"
 #include "differential_controller/circle_counter.hpp"
@@ -34,6 +37,13 @@ enum class ZERO_STATE{
     ZERO_FAIL = -1,
     ZERO_INPROGRESS = 0,
     ZERO_OK = 1
+};
+
+struct EndDifferentialState{
+    double roll_position=0.0;
+    double roll_velocity=0.0;
+    double pitch_position=0.0;
+    double pitch_velocity=0.0;
 };
 
 class DifferentialController : public controller_interface::ChainableControllerInterface{
@@ -126,17 +136,17 @@ private:
     // 调试信息发布器
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> call_period_publisher_=nullptr;
     rclcpp::Time last_time_;
-    // // Motor publishers (left)
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_ref_position_pub_ = nullptr;
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_ref_velocity_pub_ = nullptr;
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_state_position_pub_ = nullptr;
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_state_velocity_pub_ = nullptr;
+    // Motor publishers (left)
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_ref_position_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_ref_velocity_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_state_position_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_left_state_velocity_pub_ = nullptr;
 
-    // // Motor publishers (right)
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_ref_position_pub_ = nullptr;
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_ref_velocity_pub_ = nullptr;
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_state_position_pub_ = nullptr;
-    // std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_state_velocity_pub_ = nullptr;
+    // Motor publishers (right)
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_ref_position_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_ref_velocity_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_state_position_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> motor_right_state_velocity_pub_ = nullptr;
 
     #endif
 
@@ -145,6 +155,11 @@ private:
     std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Bool>> zero_sub_ = nullptr;
     // 强制置零 sub
     std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Bool>> force_zero_sub_ = nullptr;
+    // command sub
+    std::shared_ptr<rclcpp::Subscription<rm_controller_interface::msg::EndDifferentialCommand>> command_sub_ = nullptr;
+
+    // 记录最新的 command 消息
+    realtime_tools::RealtimeBuffer<rm_controller_interface::msg::EndDifferentialCommand> last_command_msg_;
 
     // 标零参数
     // 标零时的 增加的position 的值
@@ -160,12 +175,45 @@ private:
     double zero_timeout_ = 0.0;
     // 用来判断单机是否使能
     double effort_enable_threshold_ = 0.0;
+    // 齿轮比
+    double gear_ratio_ = 0.0;
 
     // 最大最小的旋转范围的差值
     double maximum_rotational_range_ = 0.0;
 
+    // 记录在没有置零的时候call update 的次数
+    int zero_call_attempts_ = 0;
+
+    // 记录启动了置零但是没有使能的次数
+    int zero_effort_not_enable_attempts_ = 0;
+
+    // 记录电机一个停转了另外一个宕机了的次数
+    int zero_one_motor_stall_attempts_ = 0;
+
+    // 前一次被调用时的 left position
+    double last_process_zero_left_position_ = -1e9;
+    // 前一次被调用时的 right position
+    double last_process_zero_right_position_ = -1e9;
+
+    // 置零处理函数，只会在 update_and_write_commands 中调用
+    void process_zero_();
+
+    // 命令处理函数，只会在 update_and_write_commands 中调用
+    void process_command_();
+
+    // 置零失败处理函数 只会在 update_and_write_commands 中调用，在没有置零时，调用update会调用这个函数
+    void process_zero_failure_();
+
+    // 最新的参考值：roll_pos, roll_vel, pitch_pos, pitch_vel
+    std::vector<double> reference_{0.0, 0.0, 0.0, 0.0};
+
+    // 最新的状态值：roll_pos, roll_vel, pitch_pos, pitch_vel
+    std::vector<double> state_{0.0, 0.0, 0.0, 0.0};
+
     // 置零状态
     std::atomic<ZERO_STATE> zero_state_{ZERO_STATE::ZERO_FAIL};
+    // 置零计时器 互斥锁
+    std::mutex zero_start_time_mutex_;
     // 置零计时器
     rclcpp::Time zero_start_time_ = rclcpp::Clock().now();
 
@@ -191,6 +239,14 @@ private:
     // call_back
     void zero_sub_callback_(const std_msgs::msg::Bool::SharedPtr msg);
     void force_zero_sub_callback_(const std_msgs::msg::Bool::SharedPtr msg);
+    void command_sub_callback_(const rm_controller_interface::msg::EndDifferentialCommand::SharedPtr msg);
+
+    // /**
+    //  * @brief 用于计算差速器位置速度的部分，会计算并更新state_变量，并且更新 left_motor_position_counter_ right_motor_position_counter_
+    //  * 
+    //  * @return EndDifferentialState 
+    //  */
+    // EndDifferentialState calculate_differential_state_();
 
 }; // class DifferentialController
 
