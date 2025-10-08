@@ -77,7 +77,7 @@ ament_export_include_directories(
   include
 )
 
-# pluginlib_export_plugin_description_file(controller_interface differential_controller.xml)
+pluginlib_export_plugin_description_file(controller_interface differential_controller.xml)
 
 install(
   TARGETS differential_controller_parameters differential_controller

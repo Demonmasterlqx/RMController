@@ -1,0 +1,76 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 1000  # Hz
+
+    joint_1_position_controller:
+      type: RM_hardware_interface/PositionSpeedController
+
+    joint_2_position_controller:
+      type: RM_hardware_interface/PositionSpeedController
+
+    test_differential_controller:
+      type: RM_hardware_interface/DifferentialController
+
+test_differential_controller:
+  ros__parameters:
+    type: RM_hardware_interface/DifferentialController
+    motor_left: joint_1
+    motor_right: joint_2
+
+    motor_left_command_position: joint_1_position_controller/joint_1/position
+    motor_right_command_position: joint_2_position_controller/joint_2/position
+    motor_left_command_velocity: joint_1_position_controller/joint_1/velocity
+    motor_right_command_velocity: joint_2_position_controller/joint_2/velocity
+
+    gear_ratio: 0.5
+
+    pitch_joint: pitch_joint
+    roll_joint: roll_joint
+
+    zero_delta_position: 0.1
+    zero_velocity: 1.0
+    maximum_rotational_range: 6.283185307179586476925286766559
+
+joint_1_position_controller:
+  ros__parameters:
+    type: RM_hardware_interface/PositionSpeedController
+    joint: joint_1
+    effort_command_name: effort
+    speed_state_name: velocity
+    position_state_name: position
+    effort_state_name: effort
+    reference_timeout: 0.1
+    chainable: true
+    command_topic: speed_position_command
+
+    pos_Kp: 1.0
+    pos_Ki: 0.1
+    pos_Intergral_Limit: 0.5
+    pos_MaxOut: 2.0
+
+    vel_Kp: 10.0
+    vel_Ki: 0.1
+    vel_Intergral_Limit: 0.5
+    vel_MaxOut: 2.0
+
+joint_2_position_controller:
+  ros__parameters:
+    type: RM_hardware_interface/PositionSpeedController
+    joint: joint_2
+    effort_command_name: effort
+    speed_state_name: velocity
+    position_state_name: position
+    effort_state_name: effort
+    reference_timeout: 0.1
+    chainable: true
+    command_topic: speed_position_command
+
+    pos_Kp: 1.0
+    pos_Ki: 0.1
+    pos_Intergral_Limit: 0.5
+    pos_MaxOut: 2.0
+
+    vel_Kp: 10.0
+    vel_Ki: 0.1
+    vel_Intergral_Limit: 0.5
+    vel_MaxOut: 2.0

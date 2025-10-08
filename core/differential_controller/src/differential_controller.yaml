@@ -11,6 +11,13 @@ differential_controller:
       default_value: "motor_right",
       description: "右侧电机的名称 / 基本标识，用于推断默认 topic 接口（可被下面具体的接口覆盖）",
     }
+  
+  chainable:
+    {
+      type: bool,
+      default_value: false,
+      description: "是否允许该控制器作为链式控制器的一部分运行（若为 true 则不会在 on_activate 时清零命令）",
+    }
 
   # 可选：显式覆盖 motor 的 state/command 接口（若为空则使用 motor_left/motor_right 名称推断）
   motor_left_state_position:

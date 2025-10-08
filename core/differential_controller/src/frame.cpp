@@ -55,7 +55,7 @@ controller_interface::CallbackReturn DifferentialController::on_cleanup(const rc
 }
 
 controller_interface::CallbackReturn DifferentialController::on_configure(const rclcpp_lifecycle::State & previous_state){
-    RCLCPP_INFO(get_node()->get_logger(), "Configuring DifferentialController");
+    RCLCPP_INFO(get_node()->get_logger(), "Configuring DifferentialController from %s", previous_state.label().c_str());
 
     try{
         params_ = param_listener_->get_params();
@@ -64,6 +64,17 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
         RCLCPP_ERROR(get_node()->get_logger(), "Could not get parameters: %s", e.what());
         return controller_interface::CallbackReturn::ERROR;
     }
+
+    if(params_.chainable){
+        chainable_ = true;
+        RCLCPP_INFO(get_node()->get_logger(), "Chainable mode is enabled.");
+    }
+    else{
+        chainable_ = false;
+        // 订阅 command 话题
+        RCLCPP_INFO(get_node()->get_logger(), "Chainable mode is disabled.");
+    }
+    set_chained_mode(chainable_);
 
     // initialize counters
     left_motor_position_counter_ = std::make_shared<CircleCounter>(params_.maximum_rotational_range);
@@ -101,18 +112,29 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
         return motor + "/" + suffix;
     };
 
-    motor_left_state_position_name_ = params_.motor_left_state_position.empty() ? infer(params_.motor_left, "/position") : params_.motor_left_state_position;
-    motor_left_state_velocity_name_ = params_.motor_left_state_velocity.empty() ? infer(params_.motor_left, "/velocity") : params_.motor_left_state_velocity;
-    motor_left_state_effort_name_ = params_.motor_left_state_effort.empty() ? infer(params_.motor_left, "/effort") : params_.motor_left_state_effort;
-    motor_left_command_position_name_ = params_.motor_left_command_position.empty() ? infer(params_.motor_left, "/position") : params_.motor_left_command_position;
-    motor_left_command_velocity_name_ = params_.motor_left_command_velocity.empty() ? infer(params_.motor_left, "/velocity") : params_.motor_left_command_velocity;
+    motor_left_state_position_name_ = params_.motor_left_state_position.empty() ? infer(params_.motor_left, "position") : params_.motor_left_state_position;
+    motor_left_state_velocity_name_ = params_.motor_left_state_velocity.empty() ? infer(params_.motor_left, "velocity") : params_.motor_left_state_velocity;
+    motor_left_state_effort_name_ = params_.motor_left_state_effort.empty() ? infer(params_.motor_left, "effort") : params_.motor_left_state_effort;
+    motor_left_command_position_name_ = params_.motor_left_command_position.empty() ? infer(params_.motor_left, "position") : params_.motor_left_command_position;
+    motor_left_command_velocity_name_ = params_.motor_left_command_velocity.empty() ? infer(params_.motor_left, "velocity") : params_.motor_left_command_velocity;
 
-    motor_right_state_position_name_ = params_.motor_right_state_position.empty() ? infer(params_.motor_right, "/position") : params_.motor_right_state_position;
-    motor_right_state_velocity_name_ = params_.motor_right_state_velocity.empty() ? infer(params_.motor_right, "/velocity") : params_.motor_right_state_velocity;
-    motor_right_state_effort_name_ = params_.motor_right_state_effort.empty() ? infer(params_.motor_right, "/effort") : params_.motor_right_state_effort;
-    motor_right_command_position_name_ = params_.motor_right_command_position.empty() ? infer(params_.motor_right, "/position") : params_.motor_right_command_position;
-    motor_right_command_velocity_name_ = params_.motor_right_command_velocity.empty() ? infer(params_.motor_right, "/velocity") : params_.motor_right_command_velocity;
+    motor_right_state_position_name_ = params_.motor_right_state_position.empty() ? infer(params_.motor_right, "position") : params_.motor_right_state_position;
+    motor_right_state_velocity_name_ = params_.motor_right_state_velocity.empty() ? infer(params_.motor_right, "velocity") : params_.motor_right_state_velocity;
+    motor_right_state_effort_name_ = params_.motor_right_state_effort.empty() ? infer(params_.motor_right, "effort") : params_.motor_right_state_effort;
+    motor_right_command_position_name_ = params_.motor_right_command_position.empty() ? infer(params_.motor_right, "position") : params_.motor_right_command_position;
+    motor_right_command_velocity_name_ = params_.motor_right_command_velocity.empty() ? infer(params_.motor_right, "velocity") : params_.motor_right_command_velocity;
 
+    // 输出所有的这些name
+    RCLCPP_INFO(get_node()->get_logger(), "Motor left state position interface: %s", motor_left_state_position_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor left state velocity interface: %s", motor_left_state_velocity_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor left state effort interface: %s", motor_left_state_effort_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor left command position interface: %s", motor_left_command_position_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor left command velocity interface: %s", motor_left_command_velocity_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor right state position interface: %s", motor_right_state_position_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor right state velocity interface: %s", motor_right_state_velocity_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor right state effort interface: %s", motor_right_state_effort_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor right command position interface: %s", motor_right_command_position_name_.c_str());
+    RCLCPP_INFO(get_node()->get_logger(), "Motor right command velocity interface: %s", motor_right_command_velocity_name_.c_str());
     // publishers
 
     try{
