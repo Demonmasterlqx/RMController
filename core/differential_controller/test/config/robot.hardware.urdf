@@ -37,4 +37,24 @@
         </joint>
 
     </ros2_control>
+
+    <ros2_control name="differential_controller_hardwareinterface_test_robot_control" type="system">
+        <hardware>
+            <plugin>RM_hardware_interface/DifferentialControllerHardwareInterface</plugin>
+        </hardware>
+
+        <joint name="pitch_joint">
+
+            <param name="controller_name">test_differential_controller</param>
+
+        </joint>
+
+        <joint name="roll_joint">
+
+            <param name="controller_name">test_differential_controller</param>
+
+        </joint>
+
+    </ros2_control>
+
 </robot>

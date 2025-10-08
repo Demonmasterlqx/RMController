@@ -1,0 +1,9 @@
+<library path="differential_controller_hardware_interface"> <!-- library 标签指向你的共享库名称 -->
+  <class
+    name="RM_hardware_interface/DifferentialControllerHardwareInterface" 
+    base_class_type="hardware_interface::SystemInterface"
+    type="RM_hardware_interface::DifferentialControllerHardwareInterface">
+      <description>用于ros2 humble chainable 曲线救国</description>
+  </class>
+  <!-- 如果你的同一个库里有多个插件类，可以在 library 标签内再添加 class 标签 -->
+</library>
