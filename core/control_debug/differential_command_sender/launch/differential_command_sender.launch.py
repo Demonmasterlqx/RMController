@@ -9,7 +9,7 @@ def generate_launch_description():
         DeclareLaunchArgument('work_mode', default_value='position_sine_velocity_fixed'),
         DeclareLaunchArgument('amplitude', default_value='3.1415926'),
         DeclareLaunchArgument('frequency', default_value='0.5'),
-        DeclareLaunchArgument('offset', default_value='3.1415926'),
+        DeclareLaunchArgument('offset', default_value='0.0'),
         DeclareLaunchArgument('phase', default_value='0.0'),
         DeclareLaunchArgument('fixed_velocity', default_value='1.0'),
         DeclareLaunchArgument('fixed_position', default_value='0.0'),
