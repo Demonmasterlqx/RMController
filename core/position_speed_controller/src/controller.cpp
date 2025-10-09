@@ -58,7 +58,8 @@ controller_interface::return_type PositionSpeedController::update_and_write_comm
     }
 
     // 对 position_command 限幅
-    position_command = std::min(std::max(position_command, pos_min_), pos_max_);
+    // position_command = std::min(std::max(position_command, pos_min_), pos_max_);
+    position_command = position_command - (pos_max_ - pos_min_)*int(position_command / (pos_max_ - pos_min_));
 
     double effort_command=0.0;
 
