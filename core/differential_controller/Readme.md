@@ -66,6 +66,8 @@ differential_controller:
     zero_pitch_position: 1.5555
     # 标零时间限制
     zero_timeout: 5.0
+    # 当检测到电机处于静止状态时发出的速度置零(实现电机定死不动)
+    stable_velocity_command: 1.0
 
 ```
 

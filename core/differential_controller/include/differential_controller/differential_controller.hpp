@@ -47,6 +47,12 @@ struct EndDifferentialState{
     double pitch_velocity=0.0;
 };
 
+// 只从ref角度，指示电机当前的状态
+enum class JointState{
+    STABLE = 0,
+    MOVING = 1,
+};
+
 class DifferentialController : public controller_interface::ChainableControllerInterface{
 public:
 
@@ -135,7 +141,8 @@ private:
 
     // is_zero status publisher (int8: -1 fail, 0 in_progress, 1 success)
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int8>> is_zero_pub_ = nullptr;
-
+    // joint state publisher (int8: 0 stable, 1 moving)
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int8>> joint_state_pub_ = nullptr;
 
     #ifdef DEBUG
     // 调试信息发布器
@@ -203,6 +210,9 @@ private:
     // 前一次被调用时的 right position
     double last_process_zero_right_position_ = -1e9;
 
+    // 进入静止状态时发出的velocity命令
+    double stable_velocity_command_ = 0.0;
+
     // 置零处理函数，只会在 update_and_write_commands 中调用
     void process_zero_();
 
@@ -218,8 +228,18 @@ private:
     // 最新的参考值：roll_pos, roll_vel, pitch_pos, pitch_vel
     std::vector<double> reference_{0.0, 0.0, 0.0, 0.0};
 
+    // 上一次的参考值：roll_pos, roll_vel, pitch_pos, pitch_vel
+    std::vector<double> last_reference_{0.0, 0.0, 0.0, 0.0};
+
     // 最新的状态值：roll_pos, roll_vel, pitch_pos, pitch_vel
     std::vector<double> state_{0.0, 0.0, 0.0, 0.0};
+
+    // stable 状态的期望位置/速度
+    // 在置零成功的时候，会给这个值赋值，赋值为置零时的位置
+    // 在MOVEING 的时候，这个值等于 state_
+    std::vector<double> stable_position_{0.0, 0.0, 0.0, 0.0};
+
+    std::atomic<JointState> joint_state_{JointState::MOVING};
 
     // 置零状态
     std::atomic<ZERO_STATE> zero_state_{ZERO_STATE::ZERO_FAIL};

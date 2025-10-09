@@ -33,6 +33,7 @@ test_differential_controller:
     maximum_rotational_range: 6.283185307179586476925286766559
     effort_enable_threshold: 0.5
     zero_timeout: 10.0
+    stable_velocity_command: 1.0
 
 
 

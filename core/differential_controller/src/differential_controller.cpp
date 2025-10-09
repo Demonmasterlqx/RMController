@@ -62,12 +62,30 @@ controller_interface::return_type DifferentialController::update_and_write_comma
             reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX] = 0.0;
         }
 
-        if(!watchdog_->is_triggered()){
+        if(watchdog_->is_triggered()){
             reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX] = 0.0;
             reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX] = state_[CHAIN_ROLL_POSITION_STATE_INDEX];
             reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX] = 0.0;
             reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX] = state_[CHAIN_PITCH_POSITION_STATE_INDEX];
         }
+    }
+
+    // 如果refer position 相较于上一次没有明显变化，并且ref的速度为0，则添加速度，使得电机保持不动
+    if(
+        ((std::abs(reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX] - last_reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX]) < 1e-4 &&
+        std::abs(reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX] - last_reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX]) < 1e-4 &&
+        std::abs(reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX]) < 1e-4 &&
+        std::abs(reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX]) < 1e-4) || watchdog_->is_triggered()) && (zero_state_.load() == ZERO_STATE::ZERO_OK)
+    ){
+        reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX] = stable_velocity_command_;
+        reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX] = stable_velocity_command_;
+        reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX] = stable_position_[CHAIN_ROLL_POSITION_STATE_INDEX];
+        reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX] = stable_position_[CHAIN_PITCH_POSITION_STATE_INDEX];
+        joint_state_.store(JointState::STABLE);
+    }
+    else{
+        joint_state_.store(JointState::MOVING);
+        stable_position_ = state_;
     }
 
     // 按照 zero 的状态
@@ -138,6 +156,11 @@ controller_interface::return_type DifferentialController::update_and_write_comma
         zero_msg.data = static_cast<int8_t>(zero_state_.load());
         is_zero_pub_->publish(zero_msg);
 
+        // publish joint_state
+        std_msgs::msg::Int8 joint_state_msg;
+        joint_state_msg.data = static_cast<int8_t>(joint_state_.load());
+        joint_state_pub_->publish(joint_state_msg);
+
 
 
     }
@@ -174,6 +197,8 @@ controller_interface::return_type DifferentialController::update_and_write_comma
 
     last_process_zero_left_position_ = state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value();
     last_process_zero_right_position_ = state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value();
+
+    last_reference_ = reference_;
 
     return controller_interface::return_type::OK;
 }
@@ -249,6 +274,12 @@ void DifferentialController::process_zero_(){
         command_interfaces_[RIGHT_VELOCITY_COMMAND_INDEX].set_value(0.0);
         command_interfaces_[LEFT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
         command_interfaces_[RIGHT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
+
+        stable_position_[CHAIN_ROLL_POSITION_STATE_INDEX] = zero_roll_position_;
+        stable_position_[CHAIN_ROLL_VELOCITY_STATE_INDEX] = 0.0;
+        stable_position_[CHAIN_PITCH_POSITION_STATE_INDEX] = zero_pitch_position_;
+        stable_position_[CHAIN_PITCH_VELOCITY_STATE_INDEX] = 0.0;
+        
         RCLCPP_INFO(this->get_node()->get_logger(), "DifferentialController: zero success!");
         return;
     }
@@ -302,6 +333,11 @@ void DifferentialController::process_force_zero_(){
         zero_state_.store(ZERO_STATE::ZERO_FAIL);
         return;
     }
+
+    stable_position_[CHAIN_ROLL_POSITION_STATE_INDEX] = zero_roll_position_;
+    stable_position_[CHAIN_ROLL_VELOCITY_STATE_INDEX] = 0.0;
+    stable_position_[CHAIN_PITCH_POSITION_STATE_INDEX] = zero_pitch_position_;
+    stable_position_[CHAIN_PITCH_VELOCITY_STATE_INDEX] = 0.0;
     
     RCLCPP_INFO(this->get_node()->get_logger(), "DifferentialController: force zero success!");
     zero_state_.store(ZERO_STATE::ZERO_OK);

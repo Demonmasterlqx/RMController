@@ -153,6 +153,12 @@ differential_controller:
       default_value: 5.0,
       description: "标零单次尝试的超时时间（秒），超时后可重试或失败上报",
     }
+  joint_state_topic:
+    {
+      type: string,
+      default_value: "",
+      description: "发布电机当前状态（int: 0 stable, 1 moving）的 topic 名称",
+    }
 
   # 发布/控制相关
   auto_zero_on_start:
@@ -172,4 +178,10 @@ differential_controller:
       type: double,
       default_value: 0.4,
       description: "用于判断 motor state effort 是否表明电机已使能的阈值",
+    }
+  stable_velocity_command:
+    {
+      type: double,
+      default_value: 1.0,
+      description: "当检测到电机处于静止状态时发出的速度置零(实现电机定死不动)",
     }

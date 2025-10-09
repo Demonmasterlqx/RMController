@@ -72,6 +72,8 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
     else{
         chainable_ = false;
         // 订阅 command 话题
+        command_sub_ = get_node()->create_subscription<rm_controller_interface::msg::EndDifferentialCommand>(std::string(this->get_node()->get_name()) + "/command", 1,
+            std::bind(&DifferentialController::command_sub_callback_, this, std::placeholders::_1));
         RCLCPP_INFO(get_node()->get_logger(), "Chainable mode is disabled.");
     }
     set_chained_mode(chainable_);
@@ -110,6 +112,12 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
     else{
         is_zero_pub_ = get_node()->create_publisher<std_msgs::msg::Int8>(params_.is_zero_topic, 1);
     }
+    if(params_.joint_state_topic.empty()){
+        joint_state_pub_ = get_node()->create_publisher<std_msgs::msg::Int8>(std::string(this->get_node()->get_name()) + "/joint_state", 1);
+    }
+    else{
+        joint_state_pub_ = get_node()->create_publisher<std_msgs::msg::Int8>(params_.joint_state_topic, 1);
+    }
 
     // store zero parameters
     zero_delta_position_ = params_.zero_delta_position;
@@ -120,6 +128,7 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
     effort_enable_threshold_ = params_.effort_enable_threshold;
     maximum_rotational_range_ = params_.maximum_rotational_range;
     gear_ratio_ = params_.gear_ratio;
+    stable_velocity_command_ = params_.stable_velocity_command;
 
     // 检查参数是否合理
     if(gear_ratio_ <= 0.0){
@@ -134,10 +143,6 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
         RCLCPP_ERROR(get_node()->get_logger(), "Zero timeout must be positive.");
         return controller_interface::CallbackReturn::ERROR;
     }
-    // if(zero_delta_position_ <= 0.0){
-    //     RCLCPP_ERROR(get_node()->get_logger(), "Zero delta position must be positive.");
-    //     return controller_interface::CallbackReturn::ERROR;
-    // }
     if(zero_velocity_ <= 0.0){
         RCLCPP_ERROR(get_node()->get_logger(), "Zero velocity must be positive.");
         return controller_interface::CallbackReturn::ERROR;
@@ -159,6 +164,7 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
         zero_state_.store(ZERO_STATE::ZERO_FAIL);
         RCLCPP_INFO(get_node()->get_logger(), "Auto zero on start is disabled, controller will not work until zeroed");
     }
+    
 
     // 输出以上的参数
     RCLCPP_INFO(get_node()->get_logger(), "Zero delta position: %f rad", zero_delta_position_);
@@ -169,10 +175,12 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
     RCLCPP_INFO(get_node()->get_logger(), "Effort enable threshold: %f", effort_enable_threshold_);
     RCLCPP_INFO(get_node()->get_logger(), "Maximum rotational range: %f rad", maximum_rotational_range_);
     RCLCPP_INFO(get_node()->get_logger(), "Gear ratio: %f", gear_ratio_);
+    RCLCPP_INFO(get_node()->get_logger(), "Stable velocity command: %f rad/s", stable_velocity_command_);
     // 输出topic
     RCLCPP_INFO(get_node()->get_logger(), "Zero topic: %s", zero_sub_->get_topic_name());
     RCLCPP_INFO(get_node()->get_logger(), "Force zero topic: %s", force_zero_sub_->get_topic_name());
     RCLCPP_INFO(get_node()->get_logger(), "Is zero topic: %s", is_zero_pub_->get_topic_name());
+    RCLCPP_INFO(get_node()->get_logger(), "Joint state topic: %s", joint_state_pub_->get_topic_name());
 
 
     // Resolve motor interface names: prefer explicit overrides, otherwise infer from motor name
