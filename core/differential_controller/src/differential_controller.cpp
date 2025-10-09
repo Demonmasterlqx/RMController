@@ -9,11 +9,11 @@ controller_interface::return_type DifferentialController::update_and_write_comma
 
     #ifdef DEBUG
     // 计算调用周期
-    auto now = this->get_node()->now();
-    auto call_period = (now - last_time_).seconds();
-    last_time_ = now;
-    // 发布调用周期
-    if (call_period_publisher_ && call_period > 0.0) {
+    {    
+        auto now = this->get_node()->now();
+        auto call_period = (now - last_time_).seconds();
+        last_time_ = now;
+        // 发布调用周期
         auto msg = std_msgs::msg::Float32();
         msg.data = static_cast<float>(call_period);
         call_period_publisher_->publish(msg);
@@ -30,12 +30,6 @@ controller_interface::return_type DifferentialController::update_and_write_comma
     state_[CHAIN_ROLL_VELOCITY_STATE_INDEX] = - gear_ratio_ * 0.5 * (w_l + w_r);
     state_[CHAIN_PITCH_POSITION_STATE_INDEX] = zero_pitch_position_ + (epli_theta_r - epli_theta_l) * 0.5;
     state_[CHAIN_PITCH_VELOCITY_STATE_INDEX] = 0.5 * (w_r - w_l);
-
-    // 输出 state_
-    // RCLCPP_INFO(this->get_node()->get_logger(), "state_: roll_pos: %.4f, roll_vel: %.4f, pitch_pos: %.4f, pitch_vel: %.4f",
-    //             state_[CHAIN_ROLL_POSITION_STATE_INDEX], state_[CHAIN_ROLL_VELOCITY_STATE_INDEX],
-    //             state_[CHAIN_PITCH_POSITION_STATE_INDEX], state_[CHAIN_PITCH_VELOCITY_STATE_INDEX]);
-
 
     // 刷新参考值
     if(chainable_){
@@ -87,6 +81,12 @@ controller_interface::return_type DifferentialController::update_and_write_comma
         joint_state_.store(JointState::MOVING);
         stable_position_ = state_;
     }
+
+    // 按照移动的方向给 VOLICITY 定义新的符号
+    reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX] = std::copysign(reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX], 
+        reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX] - state_[CHAIN_ROLL_POSITION_STATE_INDEX]);
+    reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX] = std::copysign(reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX], 
+        reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX] - state_[CHAIN_PITCH_POSITION_STATE_INDEX]);
 
     // 按照 zero 的状态
     switch (zero_state_.load()) {

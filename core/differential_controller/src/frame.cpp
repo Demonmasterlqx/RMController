@@ -234,7 +234,7 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
     // DEBUG pub
     #ifdef DEBUG
     try{
-        call_period_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>("differential_controller/call_period", 1);
+        call_period_publisher_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(this->get_node()->get_name()) + "/call_period", 1);
         last_time_ = get_node()->now();
 
         motor_left_ref_position_pub_ = get_node()->create_publisher<std_msgs::msg::Float32>(std::string(this->get_node()->get_name()) + "/" + params_.motor_left + "/command/position", 1);
