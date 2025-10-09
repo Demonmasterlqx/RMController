@@ -118,7 +118,7 @@ differential_controller:
   maximum_rotational_range:
     {
       type: double,
-      default_value: 6.28,
+      default_value: 6.283185307179586476925286766559,
       description: "用于数圈/绕圈检测的最大旋转范围（rad），若目标位移超过该值认为可能换圈",
     }
 

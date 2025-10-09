@@ -102,7 +102,7 @@ speed_effor_controller:
 
   pos_max : {
     type: double,
-    default_value: 6.283185307179,
+    default_value: 6.283185307179586476925286766559,
     description: "位置最大值",
   }
 

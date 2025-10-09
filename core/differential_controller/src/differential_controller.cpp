@@ -69,7 +69,9 @@ controller_interface::return_type DifferentialController::update_and_write_comma
         ((std::abs(reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX] - last_reference_[CHAIN_ROLL_POSITION_COMMAND_INDEX]) < 1e-4 &&
         std::abs(reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX] - last_reference_[CHAIN_PITCH_POSITION_COMMAND_INDEX]) < 1e-4 &&
         std::abs(reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX]) < 1e-4 &&
-        std::abs(reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX]) < 1e-4) || watchdog_->is_triggered()) && (zero_state_.load() == ZERO_STATE::ZERO_OK)
+        std::abs(reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX]) < 1e-4) || watchdog_->is_triggered()) && 
+        (zero_state_.load() == ZERO_STATE::ZERO_OK) &&
+        calculate_stable_state_()
     ){
         reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX] = stable_velocity_command_;
         reference_[CHAIN_PITCH_VELOCITY_COMMAND_INDEX] = stable_velocity_command_;
@@ -297,6 +299,9 @@ void DifferentialController::process_command_(){
     double delta_left_position = -delta_P - delta_R / gear_ratio_;
     double delta_right_position = delta_P - delta_R / gear_ratio_;
 
+    delta_right_position = std::clamp(delta_right_position, -maximum_rotational_range_*0.45, maximum_rotational_range_*0.45);
+    delta_left_position = std::clamp(delta_left_position, -maximum_rotational_range_*0.45, maximum_rotational_range_*0.45);
+
     command_interfaces_[LEFT_VELOCITY_COMMAND_INDEX].set_value(left_velocity);
     command_interfaces_[RIGHT_VELOCITY_COMMAND_INDEX].set_value(right_velocity);
     command_interfaces_[LEFT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value() + delta_left_position);
@@ -341,6 +346,19 @@ void DifferentialController::process_force_zero_(){
     
     RCLCPP_INFO(this->get_node()->get_logger(), "DifferentialController: force zero success!");
     zero_state_.store(ZERO_STATE::ZERO_OK);
+
+}
+
+bool DifferentialController::calculate_stable_state_(){
+
+    double delta_P = stable_position_[CHAIN_PITCH_POSITION_COMMAND_INDEX] - state_[CHAIN_PITCH_POSITION_STATE_INDEX];
+    double delta_R = stable_position_[CHAIN_ROLL_POSITION_COMMAND_INDEX] - state_[CHAIN_ROLL_POSITION_STATE_INDEX];
+
+    double delta_left_position = -delta_P - delta_R / gear_ratio_;
+    double delta_right_position = delta_P - delta_R / gear_ratio_;
+
+    return std::abs(delta_left_position) < maximum_rotational_range_*0.8 &&
+           std::abs(delta_right_position) < maximum_rotational_range_*0.8;
 
 }
 

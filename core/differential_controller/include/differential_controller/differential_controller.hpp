@@ -239,6 +239,14 @@ private:
     // 在MOVEING 的时候，这个值等于 state_
     std::vector<double> stable_position_{0.0, 0.0, 0.0, 0.0};
 
+    /**
+     * @brief 用于检查当前的状态和期望的稳定值的差距是不是太大，防止出现因为手动移动导致的超大误差
+     * 
+     * @return true 
+     * @return false 
+     */
+    bool calculate_stable_state_();
+
     std::atomic<JointState> joint_state_{JointState::MOVING};
 
     // 置零状态
