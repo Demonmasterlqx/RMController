@@ -36,6 +36,7 @@ namespace RM_hardware_interface{
 enum class ZERO_STATE{
     ZERO_FAIL = -1,
     ZERO_INPROGRESS = 0,
+    ZERO_FORCE = 2,
     ZERO_OK = 1
 };
 
@@ -128,6 +129,10 @@ private:
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> roll_state_position_pub_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> roll_state_velocity_pub_ = nullptr;
 
+    // 展开的路程 publishers
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> left_wheel_travel_pub_ = nullptr;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> right_wheel_travel_pub_ = nullptr;
+
     // is_zero status publisher (int8: -1 fail, 0 in_progress, 1 success)
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int8>> is_zero_pub_ = nullptr;
 
@@ -190,6 +195,9 @@ private:
     // 记录电机一个停转了另外一个宕机了的次数
     int zero_one_motor_stall_attempts_ = 0;
 
+    // 记录电机到达限位的次数
+    int zero_reach_limit_attempts_ = 0;
+
     // 前一次被调用时的 left position
     double last_process_zero_left_position_ = -1e9;
     // 前一次被调用时的 right position
@@ -203,6 +211,9 @@ private:
 
     // 置零失败处理函数 只会在 update_and_write_commands 中调用，在没有置零时，调用update会调用这个函数
     void process_zero_failure_();
+
+    // 强制置零处理函数 只会在 update_and_write_commands 中调用
+    void process_force_zero_();
 
     // 最新的参考值：roll_pos, roll_vel, pitch_pos, pitch_vel
     std::vector<double> reference_{0.0, 0.0, 0.0, 0.0};

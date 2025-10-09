@@ -1,7 +1,4 @@
 #include "differential_controller/differential_controller.hpp"
-
-#include "differential_controller/differential_controller.hpp"
-
 namespace RM_hardware_interface{
 
 DifferentialController::DifferentialController():controller_interface::ChainableControllerInterface(){}
@@ -218,6 +215,8 @@ controller_interface::CallbackReturn DifferentialController::on_configure(const 
         roll_state_position_pub_ = get_node()->create_publisher<std_msgs::msg::Float32>(controller_name + "/" + params_.roll_joint + "/state/position", 1); 
         pitch_state_velocity_pub_ = get_node()->create_publisher<std_msgs::msg::Float32>(controller_name + "/" + params_.pitch_joint + "/state/velocity", 1);
         roll_state_velocity_pub_ = get_node()->create_publisher<std_msgs::msg::Float32>(controller_name + "/" + params_.roll_joint + "/state/velocity", 1); 
+        left_wheel_travel_pub_ = get_node()->create_publisher<std_msgs::msg::Float32>(controller_name + "/" + params_.motor_left + "/travel", 1);
+        right_wheel_travel_pub_ = get_node()->create_publisher<std_msgs::msg::Float32>(controller_name + "/" + params_.motor_right + "/travel", 1);
     }
     catch(const std::exception & e){
         RCLCPP_ERROR(get_node()->get_logger(), "Failed to create publishers: %s", e.what());

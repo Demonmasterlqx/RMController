@@ -29,7 +29,7 @@ public:
 	 */
 	CircleCounter(double maximum_rotational_range = 2.0 * M_PI)
 		: initialized_(false), prev_angle_(0.0), continuous_angle_(0.0),
-			base_angle_(0.0), maximum_rotational_range_(maximum_rotational_range), half_range_(0.0)
+			base_angle_(0.0), maximum_rotational_range_(maximum_rotational_range), half_range_(maximum_rotational_range / 2)
     {
 
         if(maximum_rotational_range_ < 0.0){

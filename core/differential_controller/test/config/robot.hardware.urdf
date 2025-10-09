@@ -4,13 +4,13 @@
     <ros2_control name="test_robot_control" type="system">
         <hardware>
             <plugin>RM_hardware_interface/RM_DJIMotorHardwareInterface</plugin>
-            <param name="can_port">can1</param>
+            <param name="can_port">can0</param>
             <param name="enable_topic">enable_topic</param>
         </hardware>
 
         <joint name="joint_1">
 
-            <param name="can_id">1</param>
+            <param name="can_id">3</param>
             <param name="motor_type">C610</param>
             <param name="reverse">false</param>
 
@@ -24,7 +24,7 @@
 
         <joint name="joint_2">
 
-            <param name="can_id">3</param>
+            <param name="can_id">1</param>
             <param name="motor_type">C610</param>
             <param name="reverse">false</param>
 

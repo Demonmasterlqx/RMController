@@ -23,15 +23,16 @@ test_differential_controller:
     motor_left_command_velocity: joint_1_position_controller/joint_1/velocity
     motor_right_command_velocity: joint_2_position_controller/joint_2/velocity
 
-    gear_ratio: 0.5
+    gear_ratio: 0.3333333
 
     pitch_joint: pitch_joint
     roll_joint: roll_joint
 
-    zero_delta_position: 0.1
-    zero_velocity: 0.3
+    zero_delta_position: 0.6
+    zero_velocity: 1.0
     maximum_rotational_range: 6.283185307179586476925286766559
     effort_enable_threshold: 0.5
+    zero_timeout: 10.0
 
 
 

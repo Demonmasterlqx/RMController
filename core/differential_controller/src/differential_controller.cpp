@@ -20,19 +20,22 @@ controller_interface::return_type DifferentialController::update_and_write_comma
     }
     #endif
 
-    {// 刷清状态值
     double epli_theta_l = left_motor_position_counter_->update(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
     double epli_theta_r = right_motor_position_counter_->update(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
 
     double w_l = state_interfaces_[LEFT_VELOCITY_STATE_INDEX].get_value();
     double w_r = state_interfaces_[RIGHT_VELOCITY_STATE_INDEX].get_value();
 
-    state_[CHAIN_ROLL_POSITION_STATE_INDEX] = zero_roll_position_ - gear_ratio_ * (epli_theta_l + epli_theta_r);
+    state_[CHAIN_ROLL_POSITION_STATE_INDEX] = zero_roll_position_ - gear_ratio_ * (epli_theta_l + epli_theta_r) * 0.5;
     state_[CHAIN_ROLL_VELOCITY_STATE_INDEX] = - gear_ratio_ * 0.5 * (w_l + w_r);
     state_[CHAIN_PITCH_POSITION_STATE_INDEX] = zero_pitch_position_ + (epli_theta_r - epli_theta_l) * 0.5;
     state_[CHAIN_PITCH_VELOCITY_STATE_INDEX] = 0.5 * (w_r - w_l);
 
-    }
+    // 输出 state_
+    // RCLCPP_INFO(this->get_node()->get_logger(), "state_: roll_pos: %.4f, roll_vel: %.4f, pitch_pos: %.4f, pitch_vel: %.4f",
+    //             state_[CHAIN_ROLL_POSITION_STATE_INDEX], state_[CHAIN_ROLL_VELOCITY_STATE_INDEX],
+    //             state_[CHAIN_PITCH_POSITION_STATE_INDEX], state_[CHAIN_PITCH_VELOCITY_STATE_INDEX]);
+
 
     // 刷新参考值
     if(chainable_){
@@ -83,6 +86,16 @@ controller_interface::return_type DifferentialController::update_and_write_comma
                 zero_state_.store(ZERO_STATE::ZERO_FAIL);
             }
             break;
+        case ZERO_STATE::ZERO_FORCE:
+            try{
+                process_force_zero_();
+                zero_call_attempts_=0;
+            }
+            catch(const std::exception & e){
+                RCLCPP_ERROR(this->get_node()->get_logger(), "DifferentialController: force zero process error: %s", e.what());
+                zero_state_.store(ZERO_STATE::ZERO_FAIL);
+            }
+            break;
         case ZERO_STATE::ZERO_OK:
             process_command_();
             zero_call_attempts_=0;
@@ -113,6 +126,12 @@ controller_interface::return_type DifferentialController::update_and_write_comma
         roll_ref_position_pub_->publish(msg);
         msg.data = reference_[CHAIN_ROLL_VELOCITY_COMMAND_INDEX];
         roll_ref_velocity_pub_->publish(msg);
+
+        // 发布展开的路程
+        msg.data = epli_theta_l;
+        left_wheel_travel_pub_->publish(msg);
+        msg.data = epli_theta_r;
+        right_wheel_travel_pub_->publish(msg);
 
         // publish is_zero
         std_msgs::msg::Int8 zero_msg;
@@ -160,6 +179,9 @@ controller_interface::return_type DifferentialController::update_and_write_comma
 }
 
 void DifferentialController::process_zero_(){
+
+    static const double eps = 1e-4;
+
     std::lock_guard<std::mutex> lock(zero_start_time_mutex_);
     auto now = this->get_node()->get_clock()->now();
     // 判断是否超时
@@ -182,14 +204,19 @@ void DifferentialController::process_zero_(){
     }
 
     // 如果发现一个还在转，另一个没转了，直接false
-    if((std::abs(state_interfaces_[LEFT_VELOCITY_STATE_INDEX].get_value()) > 1e-6 &&
-        std::abs(state_interfaces_[RIGHT_VELOCITY_STATE_INDEX].get_value()) < 1e-6) ||
-       (std::abs(state_interfaces_[RIGHT_VELOCITY_STATE_INDEX].get_value()) > 1e-6 &&
-        std::abs(state_interfaces_[LEFT_VELOCITY_STATE_INDEX].get_value()) < 1e-6)){
+    if((std::abs(state_interfaces_[LEFT_VELOCITY_STATE_INDEX].get_value()) > eps &&
+        std::abs(state_interfaces_[RIGHT_VELOCITY_STATE_INDEX].get_value()) < eps) ||
+       (std::abs(state_interfaces_[RIGHT_VELOCITY_STATE_INDEX].get_value()) > eps &&
+        std::abs(state_interfaces_[LEFT_VELOCITY_STATE_INDEX].get_value()) < eps)){
         zero_one_motor_stall_attempts_++;
-        if (zero_one_motor_stall_attempts_ >= 100){
+        if (zero_one_motor_stall_attempts_ >= 1000){
             RCLCPP_WARN(this->get_node()->get_logger(), "DifferentialController: zero state fail due to one motor stop but the other is still running, please set zero or check the hardware!");
             zero_state_.store(ZERO_STATE::ZERO_FAIL);
+            // 将命令置零
+            command_interfaces_[LEFT_VELOCITY_COMMAND_INDEX].set_value(0.0);
+            command_interfaces_[RIGHT_VELOCITY_COMMAND_INDEX].set_value(0.0);
+            command_interfaces_[LEFT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
+            command_interfaces_[RIGHT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
             return;
         }
     }
@@ -207,9 +234,22 @@ void DifferentialController::process_zero_(){
     if (std::abs(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value() - last_process_zero_left_position_) < 1e-6 &&
          std::abs(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value() - last_process_zero_right_position_) < 1e-6 && is_enabled) {
         // 位置没有变化，到达限位
+        zero_reach_limit_attempts_++;
+    }
+    else{
+        zero_reach_limit_attempts_ = 0;
+    }
+
+    if (zero_reach_limit_attempts_ >= 200){
         zero_state_.store(ZERO_STATE::ZERO_OK);
         left_motor_position_counter_->reset(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
         right_motor_position_counter_->reset(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
+        // 将命令全部清零
+        command_interfaces_[LEFT_VELOCITY_COMMAND_INDEX].set_value(0.0);
+        command_interfaces_[RIGHT_VELOCITY_COMMAND_INDEX].set_value(0.0);
+        command_interfaces_[LEFT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
+        command_interfaces_[RIGHT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
+        RCLCPP_INFO(this->get_node()->get_logger(), "DifferentialController: zero success!");
         return;
     }
 
@@ -247,6 +287,24 @@ void DifferentialController::process_zero_failure_(){
     command_interfaces_[RIGHT_VELOCITY_COMMAND_INDEX].set_value(0.0);
     command_interfaces_[LEFT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
     command_interfaces_[RIGHT_POSITION_COMMAND_INDEX].set_value(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
+
+}
+
+void DifferentialController::process_force_zero_(){
+
+    // 直接置零
+    try{
+        left_motor_position_counter_->reset(state_interfaces_[LEFT_POSITION_STATE_INDEX].get_value());
+        right_motor_position_counter_->reset(state_interfaces_[RIGHT_POSITION_STATE_INDEX].get_value());
+    }
+    catch(const std::exception & e){
+        RCLCPP_ERROR(this->get_node()->get_logger(), "DifferentialController: force zero reset error: %s", e.what());
+        zero_state_.store(ZERO_STATE::ZERO_FAIL);
+        return;
+    }
+    
+    RCLCPP_INFO(this->get_node()->get_logger(), "DifferentialController: force zero success!");
+    zero_state_.store(ZERO_STATE::ZERO_OK);
 
 }
 
