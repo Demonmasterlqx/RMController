@@ -76,3 +76,7 @@ differential_controller:
 控制器会通过 state effort 查看电机是否使能（如果使能了，在控制的过程中应该会有明显的力矩变化）
 
 控制器会根据 zero_delta_position 和 zero_velocity 控制控制电机，值到他们的位置不再有明显变化，然后电机会将这个位置作为基准位置。
+
+## 注意
+
+1. 不要让电机在没有处于置零状态的情况下被机械限位！！
