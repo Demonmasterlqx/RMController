@@ -142,12 +142,12 @@ ros2 launch position_speed_sender position_speed_sender.launch.py \
 ros2 launch position_speed_sender position_speed_sender.launch.py \
   work_mode:=position_sine_speed_fixed \
   amplitude:=2.0 \
-  frequency:=1.0 \
-  offset:=0.0 \
+  frequency:=0.5 \
+  offset:=2.0 \
   phase:=0.0 \
   fixed_speed:=5.0 \
   fixed_position:=0.0 \
   publish_frequency:=100.0 \
-  topic_name:=position_speed_command
+  topic_name:=/test_position_speed_controller/speed_position_command
 
 ```
