@@ -202,4 +202,8 @@ ros2 launch differential_command_sender differential_command_sender.launch.py \
   topic_name:=custom_differential_command \
   publish_frequency:=1000.0 \
   work_mode:=roll_pitch_both_sine
+
+# 常用的
+ros2 launch differential_command_sender differential_command_sender.launch.py   work_mode:=roll_pitch_both_sine   amplitude:=0.7 frequency:=0.45 fixed_position:=0.0 fixed_velocity:=0.5 topic_name:=/test_differential_controller/command
+
 ```
